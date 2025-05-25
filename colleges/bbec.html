@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BBEC</title>
+<meta name="description" content="basic idea of the colleges">
+  <meta name="keywords" content="Gauhati University,Gauhati,University, Merit List, GU, B.Ed. BED, GUBEDCET, BEDCET, 2021, GUCET">
+</head>
+<style>
+div.b {
+    line-height: 1.2;
+    text-align: center;
+    font-size: 1.4em;
+    letter-spacing: 1px;
+    padding: 5px;
+    color: Blue;
+}
+div.t {
+	margin:auto;
+    line-height: 1.2;
+    text-align: center;
+	border: 3px solid white;
+    font-size: 0.8 em;
+    letter-spacing: 1px;
+    color: black;
+}
+div.hm {
+	margin:auto;
+     text-align: center;
+}
+div.abb {
+	margin:auto;
+     text-align: center;
+}
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.header {
+  text-align: center;
+  padding: 1px;
+}
+
+.row {
+  display: -ms-flexbox; /* IE10 */
+  display: flex;
+  -ms-flex-wrap: wrap; /* IE10 */
+  flex-wrap: wrap;
+  padding: 0 4px;
+}
+
+/* Create four equal columns that sits next to each other */
+.column {
+  -ms-flex: 25%; /* IE10 */
+  flex: 25%;
+  max-width: 25%;
+  padding: 0 4px;
+}
+
+.column img {
+  margin-top: 8px;
+  vertical-align: middle;
+  width: 100%;
+}
+
+/* Responsive layout - makes a two column-layout instead of four columns */
+@media screen and (max-width: 800px) {
+  .column {
+    -ms-flex: 50%;
+    flex: 50%;
+    max-width: 50%;
+  }
+}
+
+/* Responsive layout - makes the two columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 600px) {
+  .column {
+    -ms-flex: 100%;
+    flex: 100%;
+    max-width: 100%;
+  }
+}
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #184FB0;
+  text-align: left;
+  padding: 8px;
+
+}
+
+tr:nth-child(odd) {
+  background-color: #dddddd;
+}
+
+</style>
+<body>
+<div class="b">
+<h3><p style="color:Blue;">Barnagar B.Ed. College</p></h3>
+<select name="colleges" onchange="javascript:handleSelect(this)"> 
+<option >---------Change College---------</option>
+<option value="./gubedcet21/colleges/aspm">Asom Sikshak Prashikshan Mahavidyalaya</option> 
+<option value="./gubedcet21/colleges/arce">Ataur Rahman CoE</option> 
+<option value="./gubedcet21/colleges/bcbed">Baihata Chariali B.Ed. College</option>
+<option value="./gubedcet21/colleges/bttc">Bajali T.T. College</option> 
+<option value="./gubedcet21/colleges/bbec">Barnagar B.Ed. College</option>
+<option value="./gubedcet21/colleges/bbtc">Barpeta B.T. College</option>
+<option value="./gubedcet21/colleges/bce">Biswanath CoE</option> 
+<option value="./gubedcet21/colleges/bbedc">Bongaigaon B.Ed. College</option> 
+<option value="./gubedcet21/colleges/ceb">CoE, Boko</option> 
+<option value="./gubedcet21/colleges/cecb">CoE, Christian Basti</option>
+<option value="./gubedcet21/colleges/cem">CoE, Morigaon</option> 
+<option value="./gubedcet21/colleges/cen">CoE, Nagaon</option> 
+<option value="./gubedcet21/colleges/dgbc">Dakshin Guwahati B.Ed, College</option> 
+<option value="./gubedcet21/colleges/dbcd">Deomornoi B. Ed. College, Deomornoi</option>
+<option value="./gubedcet21/colleges/dpgttc">Dhubri P.G.T.T. College</option> 
+<option value="./gubedcet21/colleges/ds">DIET Sonitpur</option> 
+<option value="./gubedcet21/colleges/dg">DIET Goalpara</option> 
+<option value="./gubedcet21/colleges/dm">DIET Mirza</option> 
+<option value="./gubedcet21/colleges/dabs">Dr. Anita Baruah Sarmah CoE</option> 
+<option value="./gubedcet21/colleges/dsr">Dr. S.R. Teachers' Training & Research Institute</option> 
+<option value="./gubedcet21/colleges/aspm">Asom Sikshak Prashikshan Mahavidyalaya</option> 
+<option value="./gubedcet21/colleges/gbtg">Govt. B.T. College, Goalpara</option> 
+<option value="./gubedcet21/colleges/gbcte">Govt. Banikanta CTE</option> 
+<option value="./gubedcet21/colleges/ctet">Govt. CTE Tezpur</option> 
+<option value="./gubedcet21/colleges/gsmn">Govt. Shikshan Mahavidyalaya, Nagaon</option> 
+<option value="./gubedcet21/colleges/krd">K.R.D. CoE</option> 
+<option value="./gubedcet21/colleges/kce">Kaliabor CoE</option> 
+<option value="./gubedcet21/colleges/ctem">CTE Mangaldai</option> 
+<option value="./gubedcet21/colleges/nite">National Institute for Teacher Education, Khetri</option> 
+<option value="./gubedcet21/colleges/pbed">Pragjyotish B.Ed, College</option> 
+<option value="./gubedcet21/colleges/rcs">R.C. Saharia T.T. College</option> 
+<option value="./gubedcet21/colleges/rttc">Rangia T.T. College</option> 
+<option value="./gubedcet21/colleges/sbedc">Sipalhar B.Ed. College</option> 
+<option value="./gubedcet21/colleges/sdp">Sudharani Doloiram Pathak CTE</option> 
+<option value="./gubedcet21/colleges/ttcm">Teacher Training College, Mirza</option> 
+<option value="./gubedcet21/colleges/wgce">West Guwahati CoE</option> 
+<option value="./gubedcet21/colleges/namce">Nazir Ajmal Memorial CoE</option> 
+<option value="./gubedcet21/colleges/pcs">Province College, Sonapur</option> 
+
+<option value="./gubedcet21/colleges/kb">Krishna Bora B.Ed. College</option> 
+<option value="./gubedcet21/colleges/ham">HAM-AK Rural CoE</option> 
+</select> 
+</div>
+<div class="abb">
+<p style="color:green;"><small>* CoE= College of Education<br/>&nbsp;&nbsp;&nbsp;CTE=College of Teacher Education</small></p>
+</div>
+<div class="b"><!-- Header -->
+<div class="header">
+  <p>blah blah blah</p>
+</div>
+<!-- Photo Grid -->
+<div class="row"> 
+  <div class="column">
+    <img src="https://raw.githubusercontent.com/borahabhigyan/gubedcet21/main/assets/img/image 1.jpg" style="width:100%">
+   
+  </div>
+  <div class="column">
+    <img src="https://raw.githubusercontent.com/borahabhigyan/gubedcet21/main/assets/img/image 2.jpg" style="width:100%">
+ 
+  </div>  
+  <div class="column">
+    <img src="https://raw.githubusercontent.com/borahabhigyan/gubedcet21/main/assets/img/image 1.jpg" style="width:100%">
+   
+  </div>
+  <div class="column">
+    <img src="https://raw.githubusercontent.com/borahabhigyan/gubedcet21/main/assets/img/image 2.jpg" style="width:100%">
+   
+  </div>
+ 
+</div>
+</div>
+<div class="t">
+<br/><br/>
+<table>
+
+  <tr>
+    <td>Type of Institution</td>
+    <td>Government/Private</td>
+  </tr>
+  <tr>
+    <td>Hostel</td>
+    <td>Unknown</td>
+  </tr>
+  <tr>
+    <td>PGs nearby</td>
+    <td>Unknown</td>
+  </tr>
+  <tr>
+    <td>Rental Rooms Nearby</td>
+    <td>Unknown</td>
+  </tr>
+  <tr>
+    <td>Neighbourhood</td>
+    <td>Unknown</td>
+  </tr>
+  <tr>
+    <td>Longtitude</td>
+    <td>-----------</td>
+  </tr>
+  <tr>
+    <td>Latitude</td>
+    <td>-----------</td>
+  </tr>
+   <tr>
+    <td>Official Website</td>
+    <td><a href="https://www.baihatacharialib-ed.org.in/"target="_blank" rel="noopener norefferer">https://www.baihatacharialib-ed.org.in/</td>
+  </tr>
+  
+</table>
+</div>
+<div class="b">
+<script type="text/javascript"> 
+function handleSelect(elm){ 
+    window.location = elm.value+".html"; /* .html if html file */ 
+} 
+</script> 
+</div>
+<div style="text-align:center;"><h4><p style="color:Blue;"><a href="https://raw.githubusercontent.com/borahabhigyan/gubedcet21/main/assets/list.pdf" target="_blank" rel="noopener norefferer">Click here for the list of the Affiliated Colleges (as per 05/01/2022 Notice)</a></p></h4></div>
+<div class="hm">
+<h3><p style="color:Blue;"><a href="./gubedcet21/">Homepage</a><br/>
+<a href="mailto:sbus+osm@simplelogin.co">e-mail me</a> to make this page better</p>
+</h3></div>
+<p><a href="https://github.com/borahabhigyan.github.io/gubedcet21/" target="_blank" rel="noopener norefferer">Source Code</a><br/>
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener norefferer"><img alt="Creative Commons Licence" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener norefferer">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.<br/>© .-&nbsp;&nbsp;&nbsp;-...</p>
+<p>The referrer of the current document is:</p>
+<p id="demo"></p>
+
+<script>
+document.getElementById("demo").innerHTML = document.referrer;
+</script></body>
+</html>
