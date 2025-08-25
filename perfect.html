@@ -27,20 +27,20 @@
 
         let currentTab = '';
         webButton.addEventListener('click', function (evt) {
-          text.setAttribute("value", "");
+          text.setAttribute("value", "Test");
           currentTab = 'web';
         });
         emailButton.addEventListener('click', function (evt) {
-          text.setAttribute("value", "");
+          text.setAttribute("value", "Test");
           currentTab = 'email';
         });
         profileButton.addEventListener('click', function (evt) {
-          text.setAttribute("value", "");
+          text.setAttribute("value", "Test");
           currentTab = 'profile';
         });
         locationButton.addEventListener('click', function (evt) {
           console.log("loc");
-          text.setAttribute("value", "");
+          text.setAttribute("value", "Test");
           currentTab = 'location';
         });
 
@@ -248,7 +248,7 @@
 
       <a-scene mindar-image="imageTargetSrc:https://raw.githubusercontent.com/lpupmarks/gubedcet21/main/gk.mind; showStats: false; uiScanning: #example-scanning-overlay;" embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
         <a-assets>
-          <img id="card" src="/assets/img/1w/wi.png" />
+          <img id="card" src="/assets/img/1w/wish.png" />
           <img id="icon-web" src="/assets/img/wish.webp" />
           <img id="icon-location" src="/assets/img/wish.webp" />
           <img id="icon-profile" src="/assets/img/wish.webp" />
@@ -263,7 +263,7 @@
           <img id="coffeemachine-preview" src="/assets/img/banish.png" />
           <img id="peak-preview" src="/assets/img/banish.png" />
           
-          <a-asset-item id="avatarModel" src="/assets/img/1w/wi.png"></a-asset-item>
+          <a-asset-item id="avatarModel" src="/assets/img/1w/wish.png"></a-asset-item>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable">
