@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>At 9 Sept 0000</title>
+  <script>
+    function checkRedirect() {
+      const now = new Date();
+      const target = new Date(now.getFullYear(), 8, 9, 0, 0, 0); 
+      // Month is 0-based, so 8 = September
+
+      if (now >= target) {
+        // If current time is on or after Sept 9, 0000 hrs → redirect
+        window.location.href = "/ni.html"; // <-- change to your target URL
+      } else {
+        // Keep checking until the time arrives
+        setTimeout(checkRedirect, 100); 
+      }
+    }
+
+    window.onload = checkRedirect;
+  </script>
+</head>
+<body>
+  <h1>Will work at/after 12 AM, 9 Sept.</h1>
+</body>
+</html>
