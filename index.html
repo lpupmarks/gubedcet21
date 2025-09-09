@@ -47,6 +47,27 @@
 
     window.onload = startCountdown;
   </script>
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Replace "yourtopic" with your ntfy.sh topic name
+  const topic = "hbdni";
+  const message = "HBDNI Visited!";
+
+  fetch(`https://ntfy.sh/${topic}`, {
+    method: "POST",
+    body: message
+  })
+  .then(response => {
+    if (!response.ok) {
+      console.error("Failed to send ntfy.sh notification:", response.statusText);
+    } else {
+      console.log("ntfy.sh notification sent successfully!");
+    }
+  })
+  .catch(err => console.error("Error sending ntfy.sh notification:", err));
+});
+</script>
+
 </head>
 <body>
   <h1>Will work at/after 12 AM on September 9</h1>
