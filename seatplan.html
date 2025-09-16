@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Class Test Seat Planner</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .section { margin-bottom: 20px; }
+    table, td, th {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 4px;
+      text-align: center;
+      min-width: 100px;
+    }
+    td div {
+      margin: 2px 0;
+      padding: 2px;
+      border-radius: 4px;
+    }
+    #unplacedList {
+      margin-top: 10px;
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Class Test Seat Planner</h2>
+
+  <div class="section">
+    <label>Class Names (comma-separated): <input type="text" id="classList" value="6,7,8"></label><br>
+    <label>Section Names (comma-separated): <input type="text" id="sectionList" value="A,B"></label><br>
+    <button onclick="generateSections()">Set Sections</button>
+  </div>
+
+  <div class="section" id="studentInputs"></div>
+
+  <div class="section">
+    <label>Number of Bench Rows: <input type="number" id="benchRows" min="1" value="4"></label><br>
+    <label>Number of Bench Columns: <input type="number" id="benchCols" min="1" value="5"></label><br>
+    <label>Max Students per Bench: <input type="number" id="maxPerBench" min="1" value="3"></label><br>
+    <label><input type="checkbox" id="loosenRules"> Allow nearby students from same group if needed</label><br>
+    <button onclick="makeSeatPlan()">Make Seat Plan</button>
+    <button onclick="clearPlan()">Clear Plan</button>
+  </div>
+
+  <div class="section">
+    <h3>Seat Plan</h3>
+    <p>Total Students: <span id="totalStudents">0</span></p>
+    <p>Bench Capacity: <span id="benchCapacity">0</span></p>
+    <p>Students Placed: <span id="studentsPlaced">0</span></p>
+    <p>Not Placed: <span id="studentsUnplaced">0</span></p>
+    <div id="seatPlanOutput"></div>
+    <div id="unplacedList"></div>
+  </div>
+
+  <script>
+    function generateSections() {
+      const classList = document.getElementById("classList").value.split(",").map(s => s.trim()).filter(Boolean);
+      const sectionList = document.getElementById("sectionList").value.split(",").map(s => s.trim()).filter(Boolean);
+      const studentInputs = document.getElementById("studentInputs");
+      studentInputs.innerHTML = "<h3>Student Roll Number Ranges</h3>";
+
+      window.allGroups = [];
+
+      if (classList.length === 0 || sectionList.length === 0) {
+        studentInputs.innerHTML += "<p style='color:red'>Please enter both class and section names.</p>";
+        return;
+      }
+
+      for (const cls of classList) {
+        for (const sec of sectionList) {
+          const id = `${cls}${sec}`;
+          studentInputs.innerHTML += `
+            <div>
+              <label>${id} Start Roll: <input type="number" id="${id}_start" required></label>
+              <label>${id} End Roll: <input type="number" id="${id}_end" required></label>
+            </div>
+          `;
+          window.allGroups.push({ id, class: cls, section: sec });
+        }
+      }
+    }
+
+    function makeSeatPlan() {
+      if (!window.allGroups || window.allGroups.length === 0) {
+        alert("Please set class and section information first.");
+        return;
+      }
+
+      const benchRows = parseInt(document.getElementById("benchRows").value);
+      const benchCols = parseInt(document.getElementById("benchCols").value);
+      const maxPerBench = parseInt(document.getElementById("maxPerBench").value);
+      const loosenRules = document.getElementById("loosenRules").checked;
+
+      const plan = Array.from({ length: benchRows }, () =>
+        Array.from({ length: benchCols }, () => [])
+      );
+
+      // Collect students per group
+      let groupStudents = [];
+      const seen = new Set();
+      for (const group of window.allGroups) {
+        const id = group.id;
+        const start = parseInt(document.getElementById(`${id}_start`).value);
+        const end = parseInt(document.getElementById(`${id}_end`).value);
+        let members = [];
+        for (let r = start; r <= end; r++) {
+          const studentId = `${id}-${r}`;
+          if (!seen.has(studentId)) {
+            members.push({ id: studentId, group: id });
+            seen.add(studentId);
+          }
+        }
+        if (members.length > 0) groupStudents.push(members);
+      }
+
+      // Round-robin order
+      let students = distributeRoundRobin(groupStudents);
+
+      document.getElementById("totalStudents").innerText = students.length;
+      let totalBenches = benchRows * benchCols;
+      document.getElementById("benchCapacity").innerText = totalBenches * maxPerBench;
+
+      // Balanced fill calculation
+      let baseFill = Math.min(maxPerBench, Math.floor(students.length / totalBenches));
+      let extra = students.length - baseFill * totalBenches;
+
+      let idx = 0;
+      let unplaced = [];
+
+      // Phase 1: Evenly distribute students across benches
+      for (let r = 0; r < benchRows; r++) {
+        for (let c = 0; c < benchCols; c++) {
+          let target = baseFill + (extra > 0 ? 1 : 0);
+          if (extra > 0) extra--;
+
+          // ✅ hard cap at maxPerBench
+          target = Math.min(target, maxPerBench);
+
+          while (plan[r][c].length < target && idx < students.length) {
+            let student = students[idx++];
+            if (loosenRules || !plan[r][c].some(s => s.group === student.group)) {
+              plan[r][c].push(student);
+            } else {
+              unplaced.push(student);
+            }
+          }
+        }
+      }
+
+      // Phase 2: Try placing leftovers with neighbor checks
+      let stillUnplaced = [];
+      for (const student of unplaced) {
+        let placed = false;
+        outer: for (let r = 0; r < benchRows; r++) {
+          for (let c = 0; c < benchCols; c++) {
+            const bench = plan[r][c];
+            if (
+              bench.length < maxPerBench &&
+              (loosenRules || !bench.some(s => s.group === student.group)) &&
+              (loosenRules || canPlace(student, r, c, plan))
+            ) {
+              bench.push(student);
+              placed = true;
+              break outer;
+            }
+          }
+        }
+        if (!placed) stillUnplaced.push(student);
+      }
+      unplaced = stillUnplaced;
+
+      // Any students left after phase 1
+      for (; idx < students.length; idx++) {
+        unplaced.push(students[idx]);
+      }
+
+      document.getElementById("studentsPlaced").innerText = students.length - unplaced.length;
+      document.getElementById("studentsUnplaced").innerText = unplaced.length;
+
+      renderPlan(plan, unplaced);
+    }
+
+    function distributeRoundRobin(groups) {
+      let result = [];
+      let maxLen = Math.max(...groups.map(g => g.length));
+      for (let i = 0; i < maxLen; i++) {
+        for (const g of groups) {
+          if (g[i]) result.push(g[i]);
+        }
+      }
+      return result;
+    }
+
+    function canPlace(student, r, c, plan) {
+      const thisBench = plan[r][c];
+      if (thisBench.some(s => s.group === student.group)) return false;
+
+      const neighbors = [
+        plan[r]?.[c - 1], plan[r]?.[c + 1],
+        plan[r - 1]?.[c], plan[r + 1]?.[c]
+      ].flat().filter(Boolean);
+
+      return !neighbors.some(s => s.group === student.group);
+    }
+
+    function renderPlan(plan, unplaced) {
+      const output = document.getElementById("seatPlanOutput");
+      let html = "<table>";
+      for (const row of plan) {
+        html += "<tr>";
+        for (const bench of row) {
+          const content = bench.map(s => `<div style="background:${getColor(s.group)}">${s.id}</div>`).join("");
+          html += `<td>${content || "-"}</td>`;
+        }
+        html += "</tr>";
+      }
+      html += "</table>";
+      output.innerHTML = html;
+
+      const unplacedDiv = document.getElementById("unplacedList");
+      if (unplaced.length > 0) {
+        unplacedDiv.innerHTML = "Unplaced Students: " + unplaced.map(s => s.id).join(", ");
+      } else {
+        unplacedDiv.innerHTML = "";
+      }
+    }
+
+    // Color groups consistently
+    const colors = {};
+    let colorIdx = 0;
+    function getColor(group) {
+      if (!colors[group]) {
+        colors[group] = `hsl(${colorIdx * 60}, 70%, 80%)`;
+        colorIdx++;
+      }
+      return colors[group];
+    }
+
+    function clearPlan() {
+      document.getElementById("seatPlanOutput").innerHTML = "";
+      document.getElementById("unplacedList").innerHTML = "";
+      document.getElementById("totalStudents").innerText = 0;
+      document.getElementById("benchCapacity").innerText = 0;
+      document.getElementById("studentsPlaced").innerText = 0;
+      document.getElementById("studentsUnplaced").innerText = 0;
+    }
+  </script>
+
+</body>
+</html>
