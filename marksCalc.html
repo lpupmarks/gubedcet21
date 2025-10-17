@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marks Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+      justify-content: flex-start;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 25px;
+      font-size: 20px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      background: #4a90e2;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #357ABD;
+    }
+    .result {
+      font-size: 24px;
+      margin-bottom: auto; /* pushes footer down */
+    }
+    footer {
+      width: 100%;
+      background: #fff;
+      border-top: 2px solid #ddd;
+      padding: 15px;
+      font-size: 18px;
+      text-align: center;
+      position: sticky;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Marks Calculator</h1>
+
+  <div class="buttons">
+    <!-- Buttons for 0.5 to 10 -->
+    <button onclick="addMark(1)">1</button>
+    <button onclick="addMark(2)">2</button>
+    <button onclick="addMark(3)">3</button>
+    <button onclick="addMark(4)">4</button>
+    <button onclick="addMark(5)">5</button>
+    <button onclick="addMark(6)">6</button>
+    <button onclick="addMark(7)">7</button>
+    <button onclick="addMark(8)">8</button>
+    <button onclick="addMark(9)">9</button>
+    <button onclick="addMark(10)">10</button>
+        <button onclick="addMark(0.5)">0.5</button>
+  </div>
+
+  <div class="action-buttons">
+    <button onclick="undo()">Undo</button>
+    <button onclick="clearAll()">Clear</button>
+  </div>
+
+  <div class="result">Total: <span id="total">0</span></div>
+
+  <footer>
+    <strong>History:</strong> <span id="history">None</span>
+  </footer>
+
+  <script>
+    let total = 0;
+    let historyArr = [];
+    const totalDisplay = document.getElementById('total');
+    const historyDisplay = document.getElementById('history');
+
+    function addMark(mark) {
+      total += mark;
+      totalDisplay.textContent = total.toFixed(1);
+      historyArr.push(mark);
+      updateHistory();
+    }
+
+    function undo() {
+      if (historyArr.length > 0) {
+        const removed = historyArr.pop();
+        total -= removed;
+        totalDisplay.textContent = total.toFixed(1);
+        updateHistory();
+      }
+    }
+
+    function clearAll() {
+      total = 0;
+      historyArr = [];
+      totalDisplay.textContent = total.toFixed(1);
+      updateHistory();
+    }
+
+    function updateHistory() {
+      if (historyArr.length === 0) {
+        historyDisplay.textContent = 'None';
+      } else {
+        historyDisplay.textContent = historyArr.join(" + ");
+      }
+    }
+  </script>
+
+</body>
+</html>
