@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Casual Leave Application — PDF Generator</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
+    body{margin:0;background:#f3f4f6;color:#0f172a;display:flex;align-items:flex-start;justify-content:center;padding:28px}
+    .container{width:960px;max-width:100%;background:white;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,.08);overflow:hidden}
+    header{padding:18px 22px;border-bottom:1px solid #eef2f7;display:flex;gap:12px;align-items:center}
+    header h1{font-size:18px;margin:0}
+    main{display:grid;grid-template-columns:360px 1fr;gap:20px;padding:20px}
+    form{padding:12px}
+    label{display:block;font-size:13px;margin-top:10px}
+    input[type="date"],textarea,input[type="text"],select{width:100%;padding:8px;border-radius:8px;border:1px solid #e6edf3;background:#fbfdff}
+    textarea{min-height:110px;resize:vertical}
+    .controls{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+    button{padding:10px 12px;border-radius:8px;border:0;background:#0ea5a3;color:white;cursor:pointer}
+    button.secondary{background:#334155}
+    .preview{padding:12px;border-left:1px solid #eef2f7}
+    .app-preview{background:#fff;padding:18px;border-radius:8px;border:1px dashed #e6edf3;white-space:pre-line;width:595px;min-height:842px;box-sizing:border-box}
+    .small{font-size:12px;color:#475569}
+    .uploaded-file{margin-top:8px}
+    footer{padding:12px 20px;border-top:1px solid #eef2f7;text-align:right}
+    .note{font-size:12px;color:#475569;margin-top:10px}
+    @media(max-width:880px){main{grid-template-columns:1fr;}}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="container" role="application">
+    <header>
+      <h1>Casual Leave Application — PDF Generator</h1>
+      <div class="small">Fill the fields, preview, then generate a downloadable PDF.</div>
+    </header>
+    <main>
+      <form id="form" onsubmit="return false;">
+        <label for="date">Date</label>
+        <input id="date" type="date" required>
+        <label for="reason">Reason for leave</label>
+        <select id="reason">
+          <option value="unavoidable reasons">Unavoidable reasons</option>
+          <option value="illness">Illness</option>
+          <option value="a family emergency">Family emergency</option>
+          <option value="a family function">Family function</option>
+        </select>
+        <label for="empName">Your name</label>
+        <input id="empName" type="text" value="GYANENDRA KUMER BORAH">
+        <label for="uploadPdf">Or upload an existing PDF (optional)</label>
+        <input id="uploadPdf" type="file" accept="application/pdf">
+        <div id="uploadedLink" class="uploaded-file"></div>
+        <div class="controls">
+          <button id="generate">Generate PDF</button>
+          <button id="downloadTemplate" class="secondary">Download Preview as PDF</button>
+          <button id="print" class="secondary" type="button">Print</button>
+        </div>
+        <div class="note">Tip: If you uploaded a PDF above, it will be provided as a direct download link. Use the "Generate PDF" button to create a new PDF from the template with the date and reason filled in.</div>
+      </form>
+      <div class="preview">
+        <div class="app-preview" id="leaveTemplate">
+To
+The Principal,
+Kuralguri Higher Secondary School.
+Date: <span id="tmplDate">________</span>
+
+Sub: Application for casual leave.
+
+Respected Sir,
+With due respect I want to inform you that I will not be able to attend my duty on <span id="tmplDate2">________</span> due to <span id="tmplReason">[Reason]</span>.
+So, I would be grateful enough if you grant me a casual leave for the above mentioned day.
+
+Yours faithfully,
+<span id="tmplName">GYANENDRA KUMER BORAH</span>
+Assistant Teacher
+Kuralguri Higher Secondary School
+        </div>
+      </div>
+    </main>
+    <footer>
+      <small class="small">All processing happens locally in your browser — nothing is uploaded to any server.</small>
+    </footer>
+  </div>
+  <script>
+    const { jsPDF } = window.jspdf || {};
+    const dateInput = document.getElementById('date');
+    const reasonInput = document.getElementById('reason');
+    const nameInput = document.getElementById('empName');
+    const tmplDate = document.getElementById('tmplDate');
+    const tmplDate2 = document.getElementById('tmplDate2');
+    const tmplReason = document.getElementById('tmplReason');
+    const tmplName = document.getElementById('tmplName');
+
+    function formatReason(reason) {
+      if (!reason) return '[Reason]';
+      const lower = reason.toLowerCase();
+      if (lower === 'illness') return 'an illness';
+      return reason;
+    }
+
+    function updatePreview(){
+      const d = dateInput.value || '________';
+      const r = formatReason(reasonInput.value);
+      const n = nameInput.value || 'GYANENDRA KUMER BORAH';
+      let pretty = d;
+      if (d && d.indexOf('-') > -1) {
+        const [y,m,day] = d.split('-');
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        pretty = (m && day && y) ? `${months[parseInt(m,10)-1]} ${parseInt(day,10)}, ${y}` : d;
+      }
+      tmplDate.textContent = pretty;
+      tmplDate2.textContent = pretty;
+      tmplReason.textContent = r;
+      tmplName.textContent = n;
+    }
+    [dateInput, reasonInput, nameInput].forEach(el => el.addEventListener('input', updatePreview));
+    updatePreview();
+
+    const uploadPdf = document.getElementById('uploadPdf');
+    const uploadedLink = document.getElementById('uploadedLink');
+    let uploadedFileURL = null;
+    uploadPdf.addEventListener('change', e => {
+      const f = e.target.files[0];
+      uploadedLink.innerHTML = '';
+      if(!f) return;
+      if(f.type !== 'application/pdf'){ uploadedLink.textContent = 'Please upload a PDF file.'; return; }
+      if(uploadedFileURL) URL.revokeObjectURL(uploadedFileURL);
+      uploadedFileURL = URL.createObjectURL(f);
+      const a = document.createElement('a');
+      a.href = uploadedFileURL;
+      a.download = f.name || 'uploaded.pdf';
+      a.textContent = `Download uploaded PDF: ${f.name}`;
+      uploadedLink.appendChild(a);
+    });
+
+    function generatePDF(){
+      updatePreview();
+      html2canvas(document.getElementById('leaveTemplate'), {scale:1.5, useCORS:true}).then(canvas => {
+        const imgData = canvas.toDataURL('image/jpeg', 0.8); // medium quality
+        const pdf = new jsPDF({unit:'pt',format:'a4'});
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+        const w = canvas.width * ratio;
+        const h = canvas.height * ratio;
+        pdf.addImage(imgData, 'JPEG', (pageWidth - w)/2, 40, w, h);
+        pdf.save((nameInput.value || 'casual_leave') + '.pdf');
+      });
+    }
+
+    document.getElementById('generate').addEventListener('click', generatePDF);
+    document.getElementById('downloadTemplate').addEventListener('click', e=>{ e.preventDefault(); generatePDF(); });
+
+    document.getElementById('print').addEventListener('click', async ()=>{
+      updatePreview();
+      const canvas = await html2canvas(document.getElementById('leaveTemplate'), {scale:1.5, useCORS:true});
+      const imgData = canvas.toDataURL('image/jpeg', 0.8);
+      const w = window.open('', '_blank');
+      if(!w){ alert('Popup blocked — allow popups to print.'); return; }
+      w.document.write('<html><head><title>Print
