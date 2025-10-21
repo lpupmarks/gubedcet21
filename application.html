@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casual Leave Application Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f5f5f5;
+    padding: 20px;
+  }
+  .container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 700px;
+    margin: auto;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 600;
+  }
+  input, select, textarea, button {
+    margin-top: 5px;
+    padding: 8px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  textarea {
+    resize: vertical;
+  }
+  #application {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    background: #fffefc;
+    min-height: 200px;
+    font-size: 14px;
+  }
+  button {
+    background-color: #0078d7;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:hover {
+    background-color: #005fa3;
+  }
+  h2 {
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Casual Leave Application Generator</h2>
+
+  <label for="absenceType">Absence Type:</label>
+  <select id="absenceType">
+    <option value="will">I will be absent</option>
+    <option value="was">I was absent</option>
+  </select>
+
+  <label>From Date:</label>
+  <input type="date" id="fromDate">
+
+  <label>To Date:</label>
+  <input type="date" id="toDate">
+
+  <label for="reason">Reason:</label>
+  <select id="reasonSelect" onchange="toggleOtherReason()">
+    <option value="illness">illness</option>
+    <option value="an unavoidable circumstance">an unavoidable circumstance</option>
+    <option value="a family function">a family function</option>
+    <option value="a family emergency">a family emergency</option>
+    <option value="other">Other</option>
+  </select>
+
+  <textarea id="otherReason" placeholder="Please specify your reason..." style="display:none;"></textarea>
+
+  <label for="name">Your Name:</label>
+  <input type="text" id="name" placeholder="Enter your full name">
+
+  <button onclick="generateApplication()">Generate Application</button>
+
+  <div id="application" contenteditable="true" style="display:none;"></div>
+
+  <button id="downloadBtn" style="display:none;" onclick="downloadPDF()">Download as PDF</button>
+</div>
+
+<script>
+// Helper function to format date as "DD Month, YYYY"
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-US", { month: "long" });
+  const year = date.getFullYear();
+  return `${day} ${month}, ${year}`;
+}
+
+// Helper function to calculate number of days between two dates
+function getDaysDifference(fromDate, toDate) {
+  if (!toDate || fromDate === toDate) return 1;
+  const start = new Date(fromDate);
+  const end = new Date(toDate);
+  const diffTime = end - start;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
+
+// Show or hide the "Other Reason" textarea
+function toggleOtherReason() {
+  const reasonSelect = document.getElementById("reasonSelect");
+  const otherReason = document.getElementById("otherReason");
+  if (reasonSelect.value === "other") {
+    otherReason.style.display = "block";
+  } else {
+    otherReason.style.display = "none";
+  }
+}
+
+function generateApplication() {
+  const type = document.getElementById("absenceType").value;
+  const fromDate = document.getElementById("fromDate").value;
+  const toDate = document.getElementById("toDate").value;
+  const reasonSelect = document.getElementById("reasonSelect").value;
+  const otherReason = document.getElementById("otherReason").value.trim();
+  const name = document.getElementById("name").value || "Name Here";
+
+  if (!fromDate) {
+    alert("Please select at least one date.");
+    return;
+  }
+
+  // Determine final reason text
+  const reason = reasonSelect === "other" && otherReason
+    ? otherReason
+    : reasonSelect;
+
+  // Format dates
+  const formattedFromDate = formatDate(fromDate);
+  let dateText = formattedFromDate;
+  const daysCount = getDaysDifference(fromDate, toDate);
+  if (toDate && toDate !== fromDate) {
+    const formattedToDate = formatDate(toDate);
+    dateText = `${formattedFromDate} - ${formattedToDate}`;
+  }
+
+  const dayText = daysCount === 1 ? "day" : "days";
+
+  let bodyText = "";
+  if (type === "will") {
+    bodyText = `With due respect, I would like to inform you that I will not be able to attend my duty on ${dateText} due to ${reason}. I would be grateful if you kindly grant me a casual leave for the above-mentioned ${dayText}.`;
+  } else {
+    bodyText = `With due respect, I would like to inform you that I could not attend my duty on ${dateText} due to ${reason}. I kindly request you to consider my absence as casual leave for the above-mentioned ${dayText}.`;
+  }
+
+  const today = formatDate(new Date().toISOString().split("T")[0]);
+
+  const applicationHTML = `
+    <p>To,<br>
+    The Principal,<br>
+    Kuralguri Higher Secondary School.</p>
+
+    <p style="text-align:right;">Date: ${today}</p>
+
+    <p><strong>Sub:</strong> Application for casual leave.</p>
+
+    <p>Respected Sir,<br>${bodyText}</p>
+
+    <p>Yours faithfully,<br><br>
+    <strong>${name}</strong><br>
+    Assistant Teacher<br>
+    Kuralguri Higher Secondary School</p>
+  `;
+
+  const appDiv = document.getElementById("application");
+  appDiv.innerHTML = applicationHTML;
+  appDiv.style.display = "block";
+  document.getElementById("downloadBtn").style.display = "block";
+  appDiv.scrollIntoView({ behavior: "smooth" });
+}
+
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  const appDiv = document.getElementById("application");
+  const editedContent = appDiv.innerText.trim();
+
+  const margin = 20;
+  let y = 20;
+  const lineHeight = 7;
+  const pageWidth = 210;
+  const maxWidth = pageWidth - 2 * margin;
+
+  doc.setFont("timesnewroman", "normal");
+  doc.setFontSize(14);
+
+  const lines = doc.splitTextToSize(editedContent, maxWidth);
+  const dateLineIndex = lines.findIndex(line => line.startsWith("Date:"));
+  if (dateLineIndex !== -1) {
+    const dateLine = lines[dateLineIndex];
+    lines.splice(dateLineIndex, 1);
+    const recipientLines = lines.slice(0, 3);
+    const remainingLines = lines.slice(3);
+    doc.text(recipientLines, margin, y);
+    y += lineHeight * (recipientLines.length + 1);
+    const dateWidth = doc.getTextWidth(dateLine);
+    doc.text(dateLine, pageWidth - margin - dateWidth, y);
+    y += lineHeight;
+    doc.text(remainingLines, margin, y);
+  } else {
+    doc.text(lines, margin, y);
+  }
+
+  doc.save("casual_leave_application.pdf");
+}
+</script>
+
+</body>
+</html>
