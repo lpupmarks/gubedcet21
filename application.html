@@ -106,7 +106,7 @@
 </div>
 
 <script>
-// Helper function to format date as "DD Month, YYYY"
+// Helper functions
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const date = new Date(dateStr);
@@ -116,24 +116,17 @@ function formatDate(dateStr) {
   return `${day} ${month}, ${year}`;
 }
 
-// Helper function to calculate number of days between two dates
 function getDaysDifference(fromDate, toDate) {
   if (!toDate || fromDate === toDate) return 1;
   const start = new Date(fromDate);
   const end = new Date(toDate);
-  const diffTime = end - start;
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 }
 
-// Show or hide the "Other Reason" textarea
 function toggleOtherReason() {
   const reasonSelect = document.getElementById("reasonSelect");
   const otherReason = document.getElementById("otherReason");
-  if (reasonSelect.value === "other") {
-    otherReason.style.display = "block";
-  } else {
-    otherReason.style.display = "none";
-  }
+  otherReason.style.display = reasonSelect.value === "other" ? "block" : "none";
 }
 
 function generateApplication() {
@@ -144,37 +137,21 @@ function generateApplication() {
   const otherReason = document.getElementById("otherReason").value.trim();
   const name = document.getElementById("name").value || "Name Here";
 
-  if (!fromDate) {
-    alert("Please select at least one date.");
-    return;
-  }
+  if (!fromDate) { alert("Please select at least one date."); return; }
 
-  // Determine final reason text
-  const reason = reasonSelect === "other" && otherReason
-    ? otherReason
-    : reasonSelect;
-
-  // Format dates
+  const reason = reasonSelect === "other" && otherReason ? otherReason : reasonSelect;
   const formattedFromDate = formatDate(fromDate);
   let dateText = formattedFromDate;
   const daysCount = getDaysDifference(fromDate, toDate);
-  if (toDate && toDate !== fromDate) {
-    const formattedToDate = formatDate(toDate);
-    dateText = `${formattedFromDate} - ${formattedToDate}`;
-  }
-
+  if (toDate && toDate !== fromDate) dateText = `${formattedFromDate} - ${formatDate(toDate)}`;
   const dayText = daysCount === 1 ? "day" : "days";
 
-  let bodyText = "";
-  if (type === "will") {
-    bodyText = `With due respect, I would like to inform you that I will not be able to attend my duty on ${dateText} due to ${reason}. I would be grateful if you kindly grant me a casual leave for the above-mentioned ${dayText}.`;
-  } else {
-    bodyText = `With due respect, I would like to inform you that I could not attend my duty on ${dateText} due to ${reason}. I kindly request you to consider my absence as casual leave for the above-mentioned ${dayText}.`;
-  }
+  const bodyText = type === "will" 
+    ? `With due respect, I would like to inform you that I will not be able to attend my duty on ${dateText} due to ${reason}. I would be grateful if you kindly grant me a casual leave for the above-mentioned ${dayText}.`
+    : `With due respect, I would like to inform you that I could not attend my duty on ${dateText} due to ${reason}. I kindly request you to consider my absence as casual leave for the above-mentioned ${dayText}.`;
 
   const today = formatDate(new Date().toISOString().split("T")[0]);
 
-  // Build HTML with properly styled image element (class .sig-img ensures 220x100 px)
   const applicationHTML = `
     <p>To,<br>
     The Principal,<br>
@@ -200,121 +177,92 @@ function generateApplication() {
   appDiv.scrollIntoView({ behavior: "smooth" });
 }
 
-// Convert pixels to millimeters (assuming 96 DPI): 1 px = 0.264583 mm
-function pxToMm(px) {
-  return px * 0.264583;
-}
+// Convert px -> mm
+function pxToMm(px) { return px * 0.264583; }
 
 async function loadImageAsDataURL(imgElement) {
-  // Try using the image element directly if CORS permits.
   return new Promise((resolve, reject) => {
     const src = imgElement.src;
     const img = new Image();
-    img.crossOrigin = "Anonymous"; // attempt to avoid tainting canvas
+    img.crossOrigin = "Anonymous";
     img.onload = function() {
       try {
         const canvas = document.createElement("canvas");
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        const dataURL = canvas.toDataURL("image/png");
-        resolve({ dataURL, widthPx: img.naturalWidth, heightPx: img.naturalHeight });
-      } catch (err) {
-        reject(err);
-      }
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        resolve({ dataURL: canvas.toDataURL("image/png") });
+      } catch (err) { reject(err); }
     };
-    img.onerror = function(e) {
-      reject(new Error("Failed to load image for embedding: " + src));
-    };
+    img.onerror = function() { reject(new Error("Failed to load image")); };
     img.src = src;
   });
 }
 
-async function downloadPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-  const appDiv = document.getElementById("application");
-  if (!appDiv || appDiv.style.display === "none") {
-    alert("Please generate the application first.");
-    return;
-  }
-
-  const margin = 20;
-  const lineHeight = 7;
-  const pageWidth = doc.internal.pageSize.width;
-  const maxWidth = pageWidth - 2 * margin;
-
-  doc.setFont("Times", "normal");
-  doc.setFontSize(14);
-
-  // Split the content into lines for text
-  const paragraphs = Array.from(appDiv.querySelectorAll("p"));
-  let y = margin;
-
-  // Loop through paragraphs
-  for (let p of paragraphs) {
-    // Check if this paragraph contains the name and signature image
-    const nameElement = p.querySelector("strong");
-    const sigImage = p.querySelector("img");
-
-    if (nameElement) {
-      // Print the text above the signature normally
-      y = printTextBlock(doc, p.innerText.replace(nameElement.innerText, ""), margin, y, maxWidth, lineHeight);
-
-      // Print the name
-      doc.setFont("Times", "bold");
-      y += lineHeight;
-      doc.text(nameElement.innerText, margin, y);
-      doc.setFont("Times", "normal");
-
-      // Draw signature below the name
-      if (sigImage) {
-        try {
-          const { dataURL, widthPx, heightPx } = await loadImageAsDataURL(sigImage);
-
-          // Use CSS width/height if set
-          const renderedWidth = sigImage.width || 220;
-          const renderedHeight = sigImage.height || 100;
-
-          const imgWidthMm = pxToMm(renderedWidth);
-          const imgHeightMm = pxToMm(renderedHeight);
-
-          y += 2; // small gap
-          doc.addImage(dataURL, "PNG", margin, y, imgWidthMm, imgHeightMm);
-          y += imgHeightMm + 4; // move y below image
-        } catch (err) {
-          console.warn("Could not embed signature image:", err);
-          y += lineHeight;
-          doc.text("(Signature image could not be embedded)", margin, y);
-          y += lineHeight;
-        }
-      }
-    } else {
-      // Normal paragraph
-      y = printTextBlock(doc, p.innerText, margin, y, maxWidth, lineHeight);
-      y += lineHeight;
-    }
-  }
-
-  doc.save("casual_leave_application.pdf");
-}
-
-// Helper function to print wrapped text
 function printTextBlock(doc, text, x, y, maxWidth, lineHeight) {
   const lines = doc.splitTextToSize(text, maxWidth);
   lines.forEach(line => {
-    if (y + lineHeight > doc.internal.pageSize.height - 20) {
-      doc.addPage();
-      y = 20;
-    }
+    if (y + lineHeight > doc.internal.pageSize.height - 20) { doc.addPage(); y = 20; }
     doc.text(line, x, y);
     y += lineHeight;
   });
   return y;
 }
 
+async function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+
+  const appDiv = document.getElementById("application");
+  const paragraphs = Array.from(appDiv.querySelectorAll("p"));
+  const margin = 20, lineHeight = 7;
+  const pageWidth = doc.internal.pageSize.width;
+  const maxWidth = pageWidth - 2*margin;
+  let y = margin;
+
+  for (let p of paragraphs) {
+    // Detect signature paragraph
+    const sigImage = p.querySelector("img");
+    const nameElement = p.querySelector("strong");
+    const text = p.innerText;
+
+    if (sigImage && nameElement) {
+      // Print lines up to name
+      const linesBeforeName = text.split(nameElement.innerText)[0].trim();
+      y = printTextBlock(doc, linesBeforeName, margin, y, maxWidth, lineHeight);
+
+      // Name in bold
+      doc.setFont("Times", "bold");
+      y += lineHeight;
+      doc.text(nameElement.innerText, margin, y);
+      doc.setFont("Times", "normal");
+      y += lineHeight;
+
+      // Signature image below name
+      try {
+        const { dataURL } = await loadImageAsDataURL(sigImage);
+        const imgWidthMm = pxToMm(220);
+        const imgHeightMm = pxToMm(100);
+        doc.addImage(dataURL, "PNG", margin, y, imgWidthMm, imgHeightMm);
+        y += imgHeightMm + 2;
+      } catch (err) {
+        console.warn("Could not embed signature image:", err);
+        doc.text("(Signature image could not be embedded)", margin, y);
+        y += lineHeight;
+      }
+
+      // Print remaining lines (Assistant Teacher etc.)
+      const linesAfterName = text.split(nameElement.innerText)[1].trim();
+      y = printTextBlock(doc, linesAfterName, margin, y, maxWidth, lineHeight);
+    } else {
+      // Normal paragraph
+      y = printTextBlock(doc, text, margin, y, maxWidth, lineHeight);
+      y += lineHeight;
+    }
+  }
+
+  doc.save("casual_leave_application.pdf");
+}
 </script>
 
 </body>
