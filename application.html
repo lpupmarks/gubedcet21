@@ -190,7 +190,8 @@ function generateApplication() {
     <p><strong>Sub:</strong> Application for casual leave.</p>
     <p>Respected Sir,<br>${bodyText}</p>
     <p>Yours faithfully,<br><br>
-      <img class="sig-img" id="sigImage" src="sign.png" style="width:220px; height:100px;" alt="signature image" /><br>
+<img class="sig-img" id="sigImage" src="sign.png" style="width:220px; height:100px;" />
+<br>
       <strong>${name}</strong><br>
       Assistant Teacher<br>
       Kuralguri Higher Secondary School
@@ -218,25 +219,26 @@ async function downloadPDF() {
 
   for (let p of paragraphs) {
     const sigImage = p.querySelector("img");
+
     if (sigImage) {
-      // Print preceding text if any
-      const textBeforeImg = p.innerText.split(sigImage.alt || "")[0].trim();
+      // 1️⃣ Print text before the image
+      const textBeforeImg = "Yours faithfully,"; // text above the signature
       y = printTextBlock(doc, textBeforeImg, margin, y, maxWidth, lineHeight);
 
-      // Draw image
+      // 2️⃣ Draw the signature image
       try {
         const { dataURL } = await loadImageAsDataURL(sigImage);
         const imgWidthMm = pxToMm(220);
         const imgHeightMm = pxToMm(100);
         doc.addImage(dataURL, "PNG", margin, y, imgWidthMm, imgHeightMm);
-        y += imgHeightMm + 3;
+        y += imgHeightMm + 3; // add small gap below image
       } catch (err) {
         console.warn("Could not embed signature image:", err);
         doc.text("(Signature image could not be embedded)", margin, y);
         y += lineHeight;
       }
 
-      // Print name and remaining lines
+      // 3️⃣ Print name and remaining lines
       const nameElement = p.querySelector("strong");
       if (nameElement) {
         doc.setFont("Times", "bold");
@@ -244,8 +246,14 @@ async function downloadPDF() {
         doc.setFont("Times", "normal");
         y += lineHeight;
 
-        const remainingLines = p.innerText.split(nameElement.innerText)[1].trim();
-        y = printTextBlock(doc, remainingLines, margin, y, maxWidth, lineHeight);
+        const remainingLines = [
+          "Assistant Teacher",
+          "Kuralguri Higher Secondary School"
+        ];
+        remainingLines.forEach(line => { 
+          doc.text(line, margin, y); 
+          y += lineHeight; 
+        });
       }
     } else {
       // Normal paragraph
@@ -256,6 +264,38 @@ async function downloadPDF() {
 
   doc.save("casual_leave_application.pdf");
 }
+
+// --- Helper functions ---
+function pxToMm(px) { return px * 0.264583; }
+
+function printTextBlock(doc, text, x, y, maxWidth, lineHeight) {
+  const lines = doc.splitTextToSize(text, maxWidth);
+  lines.forEach(line => {
+    if (y + lineHeight > doc.internal.pageSize.height - 20) { doc.addPage(); y = 20; }
+    doc.text(line, x, y);
+    y += lineHeight;
+  });
+  return y;
+}
+
+async function loadImageAsDataURL(imgElement) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = function() {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        resolve({ dataURL: canvas.toDataURL("image/png") });
+      } catch (err) { reject(err); }
+    };
+    img.onerror = function() { reject(new Error("Failed to load image")); };
+    img.src = imgElement.src;
+  });
+}
+
 </script>
 </body>
 </html>
