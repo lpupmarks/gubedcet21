@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Casual Leave Application Generator — Fixed</title>
+<title>Casual Leave Application Generator — Signature on Top</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   body {
@@ -58,12 +58,12 @@
     text-align: center;
   }
 
-  /* Force the preview image to exactly 220x100 px */
   .sig-img {
     width: 220px;
     height: 100px;
     object-fit: contain;
     display: block;
+    margin-bottom: 5px;
   }
 </style>
 </head>
@@ -106,7 +106,7 @@
 </div>
 
 <script>
-// Helper functions
+// --- Helper Functions ---
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const date = new Date(dateStr);
@@ -120,7 +120,7 @@ function getDaysDifference(fromDate, toDate) {
   if (!toDate || fromDate === toDate) return 1;
   const start = new Date(fromDate);
   const end = new Date(toDate);
-  return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.ceil((end - start) / (1000*60*60*24)) + 1;
 }
 
 function toggleOtherReason() {
@@ -129,55 +129,6 @@ function toggleOtherReason() {
   otherReason.style.display = reasonSelect.value === "other" ? "block" : "none";
 }
 
-function generateApplication() {
-  const type = document.getElementById("absenceType").value;
-  const fromDate = document.getElementById("fromDate").value;
-  const toDate = document.getElementById("toDate").value;
-  const reasonSelect = document.getElementById("reasonSelect").value;
-  const otherReason = document.getElementById("otherReason").value.trim();
-  const name = document.getElementById("name").value || "Name Here";
-
-  if (!fromDate) { alert("Please select at least one date."); return; }
-
-  const reason = reasonSelect === "other" && otherReason ? otherReason : reasonSelect;
-  const formattedFromDate = formatDate(fromDate);
-  let dateText = formattedFromDate;
-  const daysCount = getDaysDifference(fromDate, toDate);
-  if (toDate && toDate !== fromDate) dateText = `${formattedFromDate} - ${formatDate(toDate)}`;
-  const dayText = daysCount === 1 ? "day" : "days";
-
-  const bodyText = type === "will" 
-    ? `With due respect, I would like to inform you that I will not be able to attend my duty on ${dateText} due to ${reason}. I would be grateful if you kindly grant me a casual leave for the above-mentioned ${dayText}.`
-    : `With due respect, I would like to inform you that I could not attend my duty on ${dateText} due to ${reason}. I kindly request you to consider my absence as casual leave for the above-mentioned ${dayText}.`;
-
-  const today = formatDate(new Date().toISOString().split("T")[0]);
-
-  const applicationHTML = `
-    <p>To,<br>
-    The Principal,<br>
-    Kuralguri Higher Secondary School.</p>
-
-    <p style="text-align:right;">Date: ${today}</p>
-
-    <p><strong>Sub:</strong> Application for casual leave.</p>
-
-    <p>Respected Sir,<br>${bodyText}</p>
-
-    <p>Yours faithfully,<br><br>
-    <strong>${name}</strong><br>
-    <img class="sig-img" id="sigImage" src="sign.png" style="width:220px; height:100px;" alt="signature image" />
-    Assistant Teacher<br>
-    Kuralguri Higher Secondary School</p>
-  `;
-
-  const appDiv = document.getElementById("application");
-  appDiv.innerHTML = applicationHTML;
-  appDiv.style.display = "block";
-  document.getElementById("downloadBtn").style.display = "block";
-  appDiv.scrollIntoView({ behavior: "smooth" });
-}
-
-// Convert px -> mm
 function pxToMm(px) { return px * 0.264583; }
 
 async function loadImageAsDataURL(imgElement) {
@@ -209,6 +160,51 @@ function printTextBlock(doc, text, x, y, maxWidth, lineHeight) {
   return y;
 }
 
+// --- Generate HTML Application ---
+function generateApplication() {
+  const type = document.getElementById("absenceType").value;
+  const fromDate = document.getElementById("fromDate").value;
+  const toDate = document.getElementById("toDate").value;
+  const reasonSelect = document.getElementById("reasonSelect").value;
+  const otherReason = document.getElementById("otherReason").value.trim();
+  const name = document.getElementById("name").value || "Name Here";
+
+  if (!fromDate) { alert("Please select at least one date."); return; }
+
+  const reason = reasonSelect === "other" && otherReason ? otherReason : reasonSelect;
+  const formattedFromDate = formatDate(fromDate);
+  let dateText = formattedFromDate;
+  const daysCount = getDaysDifference(fromDate, toDate);
+  if (toDate && toDate !== fromDate) dateText = `${formattedFromDate} - ${formatDate(toDate)}`;
+  const dayText = daysCount === 1 ? "day" : "days";
+
+  const bodyText = type === "will" 
+    ? `With due respect, I would like to inform you that I will not be able to attend my duty on ${dateText} due to ${reason}. I would be grateful if you kindly grant me a casual leave for the above-mentioned ${dayText}.`
+    : `With due respect, I would like to inform you that I could not attend my duty on ${dateText} due to ${reason}. I kindly request you to consider my absence as casual leave for the above-mentioned ${dayText}.`;
+
+  const today = formatDate(new Date().toISOString().split("T")[0]);
+
+  const applicationHTML = `
+    <p>To,<br>The Principal,<br>Kuralguri Higher Secondary School.</p>
+    <p style="text-align:right;">Date: ${today}</p>
+    <p><strong>Sub:</strong> Application for casual leave.</p>
+    <p>Respected Sir,<br>${bodyText}</p>
+    <p>Yours faithfully,<br><br>
+      <img class="sig-img" id="sigImage" src="sign.png" style="width:220px; height:100px;" alt="signature image" /><br>
+      <strong>${name}</strong><br>
+      Assistant Teacher<br>
+      Kuralguri Higher Secondary School
+    </p>
+  `;
+
+  const appDiv = document.getElementById("application");
+  appDiv.innerHTML = applicationHTML;
+  appDiv.style.display = "block";
+  document.getElementById("downloadBtn").style.display = "block";
+  appDiv.scrollIntoView({ behavior: "smooth" });
+}
+
+// --- Download PDF ---
 async function downloadPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
@@ -221,42 +217,39 @@ async function downloadPDF() {
   let y = margin;
 
   for (let p of paragraphs) {
-    // Detect signature paragraph
     const sigImage = p.querySelector("img");
-    const nameElement = p.querySelector("strong");
-    const text = p.innerText;
+    if (sigImage) {
+      // Print preceding text if any
+      const textBeforeImg = p.innerText.split(sigImage.alt || "")[0].trim();
+      y = printTextBlock(doc, textBeforeImg, margin, y, maxWidth, lineHeight);
 
-    if (sigImage && nameElement) {
-      // Print lines up to name
-      const linesBeforeName = text.split(nameElement.innerText)[0].trim();
-      y = printTextBlock(doc, linesBeforeName, margin, y, maxWidth, lineHeight);
-
-      // Name in bold
-      doc.setFont("Times", "bold");
-      y += lineHeight;
-      doc.text(nameElement.innerText, margin, y);
-      doc.setFont("Times", "normal");
-      y += lineHeight;
-
-      // Signature image below name
+      // Draw image
       try {
         const { dataURL } = await loadImageAsDataURL(sigImage);
         const imgWidthMm = pxToMm(220);
         const imgHeightMm = pxToMm(100);
         doc.addImage(dataURL, "PNG", margin, y, imgWidthMm, imgHeightMm);
-        y += imgHeightMm + 2;
+        y += imgHeightMm + 3;
       } catch (err) {
         console.warn("Could not embed signature image:", err);
         doc.text("(Signature image could not be embedded)", margin, y);
         y += lineHeight;
       }
 
-      // Print remaining lines (Assistant Teacher etc.)
-      const linesAfterName = text.split(nameElement.innerText)[1].trim();
-      y = printTextBlock(doc, linesAfterName, margin, y, maxWidth, lineHeight);
+      // Print name and remaining lines
+      const nameElement = p.querySelector("strong");
+      if (nameElement) {
+        doc.setFont("Times", "bold");
+        doc.text(nameElement.innerText, margin, y);
+        doc.setFont("Times", "normal");
+        y += lineHeight;
+
+        const remainingLines = p.innerText.split(nameElement.innerText)[1].trim();
+        y = printTextBlock(doc, remainingLines, margin, y, maxWidth, lineHeight);
+      }
     } else {
       // Normal paragraph
-      y = printTextBlock(doc, text, margin, y, maxWidth, lineHeight);
+      y = printTextBlock(doc, p.innerText, margin, y, maxWidth, lineHeight);
       y += lineHeight;
     }
   }
@@ -264,6 +257,5 @@ async function downloadPDF() {
   doc.save("casual_leave_application.pdf");
 }
 </script>
-
 </body>
 </html>
