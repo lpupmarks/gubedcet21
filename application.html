@@ -262,16 +262,20 @@ async function downloadPDF() {
     }
   }
 
-  // Get current date in YYYY-MM-DD format
-const today = new Date();
-const yyyy = today.getFullYear();
-const mm = String(today.getMonth() + 1).padStart(2, '0'); // months are 0-based
-const dd = String(today.getDate()).padStart(2, '0');
-const formattedDate = `${yyyy}-${mm}-${dd}`;
+// Get current date and time
+const now = new Date();
+const yyyy = now.getFullYear();
+const mm = String(now.getMonth() + 1).padStart(2, '0'); // months are 0-based
+const dd = String(now.getDate()).padStart(2, '0');
+const hh = String(now.getHours()).padStart(2, '0');
+const min = String(now.getMinutes()).padStart(2, '0');
+const ss = String(now.getSeconds()).padStart(2, '0');
 
-// Save PDF with date in filename
-doc.save(`casual_leave_application_${formattedDate}.pdf`);
+// Format: YYYY-MM-DD_HH-MM-SS
+const timestamp = `${yyyy}-${mm}-${dd}_${hh}-${min}-${ss}`;
 
+// Save PDF with timestamp
+doc.save(`casual_leave_application_${timestamp}.pdf`);
 }
 
 // --- Helper functions ---
