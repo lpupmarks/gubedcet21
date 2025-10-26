@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Casual Leave Application Generator</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Casual Leave Application Generator — Fixed</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   body {
@@ -30,6 +30,7 @@
     width: 100%;
     border-radius: 6px;
     border: 1px solid #ccc;
+    box-sizing: border-box;
   }
   textarea {
     resize: vertical;
@@ -55,6 +56,14 @@
   }
   h2 {
     text-align: center;
+  }
+
+  /* Force the preview image to exactly 220x100 px */
+  .sig-img {
+    width: 220px;
+    height: 100px;
+    object-fit: contain;
+    display: block;
   }
 </style>
 </head>
@@ -165,6 +174,7 @@ function generateApplication() {
 
   const today = formatDate(new Date().toISOString().split("T")[0]);
 
+  // Build HTML with properly styled image element (class .sig-img ensures 220x100 px)
   const applicationHTML = `
     <p>To,<br>
     The Principal,<br>
@@ -178,6 +188,7 @@ function generateApplication() {
 
     <p>Yours faithfully,<br><br>
     <strong>${name}</strong><br>
+    <img class="sig-img" id="sigImage" src="sign.jpg" alt="signature image" />
     Assistant Teacher<br>
     Kuralguri Higher Secondary School</p>
   `;
@@ -189,7 +200,38 @@ function generateApplication() {
   appDiv.scrollIntoView({ behavior: "smooth" });
 }
 
-function downloadPDF() {
+// Convert pixels to millimeters (assuming 96 DPI): 1 px = 0.264583 mm
+function pxToMm(px) {
+  return px * 0.264583;
+}
+
+async function loadImageAsDataURL(imgElement) {
+  // Try using the image element directly if CORS permits.
+  return new Promise((resolve, reject) => {
+    const src = imgElement.src;
+    const img = new Image();
+    img.crossOrigin = "Anonymous"; // attempt to avoid tainting canvas
+    img.onload = function() {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL("image/png");
+        resolve({ dataURL, widthPx: img.naturalWidth, heightPx: img.naturalHeight });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = function(e) {
+      reject(new Error("Failed to load image for embedding: " + src));
+    };
+    img.src = src;
+  });
+}
+
+async function downloadPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({
     orientation: "portrait",
@@ -198,34 +240,136 @@ function downloadPDF() {
   });
 
   const appDiv = document.getElementById("application");
-  const editedContent = appDiv.innerText.trim();
+  if (!appDiv || appDiv.style.display === "none") {
+    alert("Please generate the application first.");
+    return;
+  }
 
+  // We'll reconstruct the PDF content in a controlled layout so we can position image precisely.
+  // Extract text parts from the DOM instead of raw innerText to preserve structure.
+  const paragraphs = Array.from(appDiv.querySelectorAll("p"));
   const margin = 20;
   let y = 20;
   const lineHeight = 7;
-  const pageWidth = 210;
+  const pageWidth = doc.internal.pageSize.width; // 210 mm for A4
   const maxWidth = pageWidth - 2 * margin;
 
-  doc.setFont("timesnewroman", "normal");
+  doc.setFont("Times", "normal");
   doc.setFontSize(14);
 
-  const lines = doc.splitTextToSize(editedContent, maxWidth);
-  const dateLineIndex = lines.findIndex(line => line.startsWith("Date:"));
-  if (dateLineIndex !== -1) {
-    const dateLine = lines[dateLineIndex];
-    lines.splice(dateLineIndex, 1);
-    const recipientLines = lines.slice(0, 3);
-    const remainingLines = lines.slice(3);
-    doc.text(recipientLines, margin, y);
-    y += lineHeight * (recipientLines.length + 1);
-    const dateWidth = doc.getTextWidth(dateLine);
-    doc.text(dateLine, pageWidth - margin - dateWidth, y);
-    y += lineHeight;
-    doc.text(remainingLines, margin, y);
-  } else {
-    doc.text(lines, margin, y);
+  // Helper to print paragraphs with wrapping and page break handling
+  function printTextBlock(text, startX, startY) {
+    const lines = doc.splitTextToSize(text, maxWidth - (startX - margin));
+    let localY = startY;
+    lines.forEach(line => {
+      if (localY + lineHeight > doc.internal.pageSize.height - margin) {
+        doc.addPage();
+        localY = margin;
+      }
+      doc.text(line, startX, localY);
+      localY += lineHeight;
+    });
+    return localY;
   }
 
+  // Print first paragraph(s) (To, The Principal...)
+  if (paragraphs.length > 0) {
+    // We assume the first <p> is recipient block (multiple lines)
+    const recipientHTML = paragraphs[0].innerText.trim();
+    y = printTextBlock(recipientHTML, margin, y) + lineHeight;
+  }
+
+  // Find and print date line (paragraph with "Date:")
+  let signatureImageElement = null;
+  for (let i = 1; i < paragraphs.length; i++) {
+    const p = paragraphs[i];
+    const text = p.innerText.trim();
+    if (text.startsWith("Date:")) {
+      // Right-align date on same 'line' position
+      const dateText = text; // e.g. "Date: 26 October, 2025"
+      const dateWidth = doc.getTextWidth(dateText);
+      // Align to right margin
+      const dateX = pageWidth - margin - dateWidth;
+      // print on current y (slightly lower)
+      if (y + lineHeight > doc.internal.pageSize.height - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(dateText, dateX, y);
+      y += lineHeight + 2;
+    } else {
+      // look for image inside this paragraph so we don't duplicate it later
+      const img = p.querySelector("img");
+      if (img) signatureImageElement = img;
+      // Print other paragraphs normally
+      y = printTextBlock(text, margin, y) + lineHeight;
+    }
+  }
+
+  // By this point we've printed the body. Now add the signature image near the signature.
+  // We'll try to place image just above the "Assistant Teacher" text (search for that)
+  // Find the paragraph which contains "Assistant Teacher"
+  const assistantPara = paragraphs.find(p => p.innerText.includes("Assistant Teacher"));
+  // compute y position to place image: if assistantPara exists, we'll compute expected y by re-wrapping text
+  // For simplicity, add image near the bottom of the document just before saving (but above bottom margin).
+  const bottomMargin = margin;
+  let imageEmbedded = false;
+  if (signatureImageElement) {
+    try {
+      const { dataURL, widthPx, heightPx } = await loadImageAsDataURL(signatureImageElement);
+
+      // Determine desired display size in mm: we want to follow the preview CSS 220x100 px
+      // If the image element has style width/height, prefer that, else fallback to natural size
+      const style = signatureImageElement.getAttribute("style") || "";
+      // We'll read width and height from rendered size if possible
+      const renderedWidth = signatureImageElement.width || 220; // px
+      const renderedHeight = signatureImageElement.height || 100; // px
+
+      // Convert px to mm
+      const imgWidthMm = pxToMm(renderedWidth);
+      const imgHeightMm = pxToMm(renderedHeight);
+
+      // Place image above bottom margin, or just below current y if space exists
+      let imgX = margin; // left align with margin
+      let imgY = y + 5;
+      // Ensure it doesn't exceed page bottom
+      if (imgY + imgHeightMm > doc.internal.pageSize.height - bottomMargin) {
+        // push it up so it fits above bottom margin
+        imgY = doc.internal.pageSize.height - bottomMargin - imgHeightMm - 10;
+        if (imgY < y) {
+          // If there's no room remaining on the page, add a new page and start near top
+          doc.addPage();
+          imgY = margin + 40;
+        }
+      }
+
+      // Add image
+      doc.addImage(dataURL, "PNG", imgX, imgY, imgWidthMm, imgHeightMm);
+      imageEmbedded = true;
+
+      // Move y to below image so that name/title don't overlap
+      y = Math.max(y, imgY + imgHeightMm + 4);
+    } catch (err) {
+      // Likely a CORS issue or image load problem. Fall through to graceful warning.
+      console.warn("Could not embed signature image into PDF:", err);
+      imageEmbedded = false;
+    }
+  }
+
+  // Optionally add a small note if the image could not be embedded
+  if (!imageEmbedded) {
+    const warnText = "(Signature image could not be embedded — server may block cross-origin access)";
+    if (y + lineHeight > doc.internal.pageSize.height - margin) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.setFontSize(10);
+    doc.text(warnText, margin, y);
+    y += lineHeight + 4;
+    doc.setFontSize(14);
+  }
+
+  // Save the PDF
   doc.save("casual_leave_application.pdf");
 }
 </script>
