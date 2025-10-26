@@ -188,7 +188,7 @@ function generateApplication() {
 
     <p>Yours faithfully,<br><br>
     <strong>${name}</strong><br>
-    <img class="sig-img" id="sigImage" src="sign.png" alt="signature image" />
+    <img class="sig-img" id="sigImage" src="sign.png" style="width:220px; height:100px;" alt="signature image" />
     Assistant Teacher<br>
     Kuralguri Higher Secondary School</p>
   `;
@@ -233,11 +233,7 @@ async function loadImageAsDataURL(imgElement) {
 
 async function downloadPDF() {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4"
-  });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   const appDiv = document.getElementById("application");
   if (!appDiv || appDiv.style.display === "none") {
@@ -245,133 +241,80 @@ async function downloadPDF() {
     return;
   }
 
-  // We'll reconstruct the PDF content in a controlled layout so we can position image precisely.
-  // Extract text parts from the DOM instead of raw innerText to preserve structure.
-  const paragraphs = Array.from(appDiv.querySelectorAll("p"));
   const margin = 20;
-  let y = 20;
   const lineHeight = 7;
-  const pageWidth = doc.internal.pageSize.width; // 210 mm for A4
+  const pageWidth = doc.internal.pageSize.width;
   const maxWidth = pageWidth - 2 * margin;
 
   doc.setFont("Times", "normal");
   doc.setFontSize(14);
 
-  // Helper to print paragraphs with wrapping and page break handling
-  function printTextBlock(text, startX, startY) {
-    const lines = doc.splitTextToSize(text, maxWidth - (startX - margin));
-    let localY = startY;
-    lines.forEach(line => {
-      if (localY + lineHeight > doc.internal.pageSize.height - margin) {
-        doc.addPage();
-        localY = margin;
-      }
-      doc.text(line, startX, localY);
-      localY += lineHeight;
-    });
-    return localY;
-  }
+  // Split the content into lines for text
+  const paragraphs = Array.from(appDiv.querySelectorAll("p"));
+  let y = margin;
 
-  // Print first paragraph(s) (To, The Principal...)
-  if (paragraphs.length > 0) {
-    // We assume the first <p> is recipient block (multiple lines)
-    const recipientHTML = paragraphs[0].innerText.trim();
-    y = printTextBlock(recipientHTML, margin, y) + lineHeight;
-  }
+  // Loop through paragraphs
+  for (let p of paragraphs) {
+    // Check if this paragraph contains the name and signature image
+    const nameElement = p.querySelector("strong");
+    const sigImage = p.querySelector("img");
 
-  // Find and print date line (paragraph with "Date:")
-  let signatureImageElement = null;
-  for (let i = 1; i < paragraphs.length; i++) {
-    const p = paragraphs[i];
-    const text = p.innerText.trim();
-    if (text.startsWith("Date:")) {
-      // Right-align date on same 'line' position
-      const dateText = text; // e.g. "Date: 26 October, 2025"
-      const dateWidth = doc.getTextWidth(dateText);
-      // Align to right margin
-      const dateX = pageWidth - margin - dateWidth;
-      // print on current y (slightly lower)
-      if (y + lineHeight > doc.internal.pageSize.height - margin) {
-        doc.addPage();
-        y = margin;
-      }
-      doc.text(dateText, dateX, y);
-      y += lineHeight + 2;
-    } else {
-      // look for image inside this paragraph so we don't duplicate it later
-      const img = p.querySelector("img");
-      if (img) signatureImageElement = img;
-      // Print other paragraphs normally
-      y = printTextBlock(text, margin, y) + lineHeight;
-    }
-  }
+    if (nameElement) {
+      // Print the text above the signature normally
+      y = printTextBlock(doc, p.innerText.replace(nameElement.innerText, ""), margin, y, maxWidth, lineHeight);
 
-  // By this point we've printed the body. Now add the signature image near the signature.
-  // We'll try to place image just above the "Assistant Teacher" text (search for that)
-  // Find the paragraph which contains "Assistant Teacher"
-  const assistantPara = paragraphs.find(p => p.innerText.includes("Assistant Teacher"));
-  // compute y position to place image: if assistantPara exists, we'll compute expected y by re-wrapping text
-  // For simplicity, add image near the bottom of the document just before saving (but above bottom margin).
-  const bottomMargin = margin;
-  let imageEmbedded = false;
-  if (signatureImageElement) {
-    try {
-      const { dataURL, widthPx, heightPx } = await loadImageAsDataURL(signatureImageElement);
+      // Print the name
+      doc.setFont("Times", "bold");
+      y += lineHeight;
+      doc.text(nameElement.innerText, margin, y);
+      doc.setFont("Times", "normal");
 
-      // Determine desired display size in mm: we want to follow the preview CSS 220x100 px
-      // If the image element has style width/height, prefer that, else fallback to natural size
-      const style = signatureImageElement.getAttribute("style") || "";
-      // We'll read width and height from rendered size if possible
-      const renderedWidth = signatureImageElement.width || 220; // px
-      const renderedHeight = signatureImageElement.height || 100; // px
+      // Draw signature below the name
+      if (sigImage) {
+        try {
+          const { dataURL, widthPx, heightPx } = await loadImageAsDataURL(sigImage);
 
-      // Convert px to mm
-      const imgWidthMm = pxToMm(renderedWidth);
-      const imgHeightMm = pxToMm(renderedHeight);
+          // Use CSS width/height if set
+          const renderedWidth = sigImage.width || 220;
+          const renderedHeight = sigImage.height || 100;
 
-      // Place image above bottom margin, or just below current y if space exists
-      let imgX = margin; // left align with margin
-      let imgY = y + 5;
-      // Ensure it doesn't exceed page bottom
-      if (imgY + imgHeightMm > doc.internal.pageSize.height - bottomMargin) {
-        // push it up so it fits above bottom margin
-        imgY = doc.internal.pageSize.height - bottomMargin - imgHeightMm - 10;
-        if (imgY < y) {
-          // If there's no room remaining on the page, add a new page and start near top
-          doc.addPage();
-          imgY = margin + 40;
+          const imgWidthMm = pxToMm(renderedWidth);
+          const imgHeightMm = pxToMm(renderedHeight);
+
+          y += 2; // small gap
+          doc.addImage(dataURL, "PNG", margin, y, imgWidthMm, imgHeightMm);
+          y += imgHeightMm + 4; // move y below image
+        } catch (err) {
+          console.warn("Could not embed signature image:", err);
+          y += lineHeight;
+          doc.text("(Signature image could not be embedded)", margin, y);
+          y += lineHeight;
         }
       }
-
-      // Add image
-      doc.addImage(dataURL, "PNG", imgX, imgY, imgWidthMm, imgHeightMm);
-      imageEmbedded = true;
-
-      // Move y to below image so that name/title don't overlap
-      y = Math.max(y, imgY + imgHeightMm + 4);
-    } catch (err) {
-      // Likely a CORS issue or image load problem. Fall through to graceful warning.
-      console.warn("Could not embed signature image into PDF:", err);
-      imageEmbedded = false;
+    } else {
+      // Normal paragraph
+      y = printTextBlock(doc, p.innerText, margin, y, maxWidth, lineHeight);
+      y += lineHeight;
     }
   }
 
-  // Optionally add a small note if the image could not be embedded
-  if (!imageEmbedded) {
-    const warnText = "(Signature image could not be embedded — server may block cross-origin access)";
-    if (y + lineHeight > doc.internal.pageSize.height - margin) {
-      doc.addPage();
-      y = margin;
-    }
-    doc.setFontSize(10);
-    doc.text(warnText, margin, y);
-    y += lineHeight + 4;
-    doc.setFontSize(14);
-  }
-
-  // Save the PDF
   doc.save("casual_leave_application.pdf");
 }
+
+// Helper function to print wrapped text
+function printTextBlock(doc, text, x, y, maxWidth, lineHeight) {
+  const lines = doc.splitTextToSize(text, maxWidth);
+  lines.forEach(line => {
+    if (y + lineHeight > doc.internal.pageSize.height - 20) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.text(line, x, y);
+    y += lineHeight;
+  });
+  return y;
+}
+
 </script>
 
 </body>
