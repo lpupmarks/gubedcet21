@@ -3,62 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mentor Letter Download</title>
+  <title>Generate mentor letter link</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:32px;background:#f7fafc;color:#0f172a}
     .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.08);max-width:640px;margin:auto}
     label{display:block;font-weight:600;margin-bottom:8px}
-    input{width:100%;padding:10px;font-size:16px;border-radius:8px;border:1px solid #e6edf3}
+    textarea{width:100%;min-height:48px;resize:vertical;padding:10px;font-size:16px;border-radius:8px;border:1px solid #e6edf3}
     .hint{color:#475569;font-size:13px;margin-top:8px}
     .result{margin-top:16px}
-    button{padding:10px 16px;border:none;border-radius:8px;background:#0ea5a3;color:#fff;font-weight:600;cursor:pointer;display:none}
-    .error{color:#ef4444;font-weight:600;margin-top:8px}
+    a.link{word-break:break-all;color:#0ea5a3;font-weight:600}
+    .error{color:#ef4444;font-weight:600}
   </style>
 </head>
 <body>
   <div class="card">
-    <h1 style="margin:0 0 8px 0;font-size:20px">Mentor Letter Download</h1>
-    <p style="margin:0 0 18px 0;color:#475569">Enter the <strong>last 5 digits</strong> after 233. A download button will appear automatically.</p>
+    <h1 style="margin:0 0 8px 0;font-size:20px">Mentor letter link generator</h1>
+    <p style="margin:0 0 18px 0;color:#475569">Enter an <strong>8-digit</strong> number that <strong>starts with 233</strong>. A link to the PDF will be generated automatically.</p>
 
-    <label for="num">Number: <strong>233</strong><input id="num" type="text" placeholder="e.g. 12345" maxlength="5" /></label>
-    <div class="hint">Only digits allowed. Example file: <code>23312345AL.pdf</code></div>
+    <label for="num">8-digit number (starts with 233)</label>
+    <textarea id="num" placeholder="e.g. 23312345" maxlength="8" aria-describedby="hint"></textarea>
+    <div class="hint" id="hint">Only digits allowed. Example filename produced: <code>23312345AL.pdf</code></div>
 
     <div class="result" id="result-area" aria-live="polite"></div>
-    <button id="download">Download</button>
   </div>
 
   <script>
-    const input = document.getElementById('num');
+    const textarea = document.getElementById('num');
     const resultArea = document.getElementById('result-area');
-    const downloadBtn = document.getElementById('download');
-    let currentUrl = '';
 
     function sanitize(s){ return (s||'').replace(/\D/g,'').trim(); }
 
-    function buildUrl(last5){
-      return `https://rectteduassam.in/elementary2023_part2/appointment_final/appointment_letter/233${last5}AL.pdf`;
+    function buildUrl(value){
+      return `https://rectm.in/eleary2023_part2/ment_letter/${value}AL.pdf`;
     }
 
-    input.addEventListener('input', ()=>{
-      const digits = sanitize(input.value);
-      input.value = digits; // ensure only digits shown
+    function showError(msg){
+      resultArea.innerHTML = `<div class="error">${msg}</div>`;
+    }
 
-      if(digits.length < 5){
+    function showLink(url){
+      resultArea.innerHTML = `<div>Generated URL:<br><a class="link" href="${url}" target="_blank">${url}</a></div>`;
+    }
+
+    textarea.addEventListener('input', ()=>{
+      const raw = textarea.value;
+      const digits = sanitize(raw);
+
+      if(digits.length < 8){
         resultArea.innerHTML = '';
-        downloadBtn.style.display = 'none';
         return;
       }
 
-      if(digits.length === 5){
+      if(digits.length === 8){
+        if(!digits.startsWith('233')){
+          showError('Number must start with 233.');
+          return;
+        }
         const url = buildUrl(digits);
-        currentUrl = url;
-        resultArea.innerHTML = `<div>File ready: 233${digits}AL.pdf</div>`;
-        downloadBtn.style.display = 'inline-block';
+        showLink(url);
       }
-    });
-
-    downloadBtn.addEventListener('click', ()=>{
-      if(currentUrl) window.open(currentUrl, '_blank');
     });
   </script>
 </body>
