@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Casual Leave Application Generator — Secure Version</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f5f5f5;
+    padding: 20px;
+  }
+  .container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 700px;
+    margin: auto;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 600;
+  }
+  input, select, textarea, button {
+    margin-top: 5px;
+    padding: 8px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+  }
+  textarea {
+    resize: vertical;
+  }
+  #application {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    background: #fffefc;
+    min-height: 200px;
+    font-size: 14px;
+  }
+  button {
+    background-color: #0078d7;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:hover {
+    background-color: #005fa3;
+  }
+  h2 {
+    text-align: center;
+  }
+  .sig-img {
+    width: 220px;
+    height: 100px;
+    object-fit: contain;
+    display: block;
+    margin-bottom: 5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Casual Leave Application Generator</h2>
+
+  <label for="absenceType">Absence Type:</label>
+  <select id="absenceType">
+    <option value="will">I will be absent</option>
+    <option value="was">I was absent</option>
+  </select>
+
+  <label>From Date:</label>
+  <input type="date" id="fromDate">
+
+  <label>To Date:</label>
+  <input type="date" id="toDate">
+
+  <label for="reason">Reason:</label>
+  <select id="reasonSelect" onchange="toggleOtherReason()">
+    <option value="illness">illness</option>
+    <option value="an unavoidable circumstance">an unavoidable circumstance</option>
+    <option value="a family function">a family function</option>
+    <option value="a family emergency">a family emergency</option>
+    <option value="other">Other</option>
+  </select>
+
+  <textarea id="otherReason" placeholder="Please specify your reason..." style="display:none;"></textarea>
+
+  <label for="name">Your Name:</label>
+  <input type="text" id="name" placeholder="Enter your full name">
+
+  <button onclick="generateApplication()">Generate Application</button>
+
+  <div id="application" contenteditable="true" style="display:none;"></div>
+
+  <button id="downloadBtn" style="display:none;" onclick="downloadPDF()">Download as PDF</button>
+</div>
+
+<script>
+// === Global Cache ===
+let cachedSignature = null;
+let cachedDefaultName = null;
+
+// === Helper Functions ===
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-US", { month: "long" });
+  const year = date.getFullYear();
+  return `${day} ${month}, ${year}`;
+}
+
+function getDaysDifference(fromDate, toDate) {
+  if (!toDate || fromDate === toDate) return 1;
+  const start = new Date(fromDate);
+  const end = new Date(toDate);
+  return Math.ceil((end - start) / (1000*60*60*24)) + 1;
+}
+
+function toggleOtherReason() {
+  const reasonSelect = document.getElementById("reasonSelect");
+  const otherReason = document.getElementById("otherReason");
+  otherReason.style.display = reasonSelect.value === "other" ? "block" : "none";
+}
+
+function pxToMm(px) { return px * 0.264583; }
+
+async function loadImageAsDataURL(imgElement) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = function() {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        resolve({ dataURL: canvas.toDataURL("image/png") });
+      } catch (err) { reject(err); }
+    };
+    img.onerror = function() { reject(new Error("Failed to load image")); };
+    img.src = imgElement.src;
+  });
+}
+
+function printTextBlock(doc, text, x, y, maxWidth, lineHeight) {
+  const lines = doc.splitTextToSize(text, maxWidth);
+  lines.forEach(line => {
+    if (y + lineHeight > doc.internal.pageSize.height - 20) { doc.addPage(); y = 20; }
+    doc.text(line, x, y);
+    y += lineHeight;
+  });
+  return y;
+}
+
+// === Fetch Secure Data ===
+async function getSignatureDataURL() {
+  if (cachedSignature) return cachedSignature;
+  const res = await fetch("/api/signatureAGB");
+  if (!res.ok) throw new Error("Failed to fetch signature");
+  const json = await res.json();
+  cachedSignature = json.data;
+  return cachedSignature;
+}
+
+async function getDefaultName() {
+  if (cachedDefaultName) return cachedDefaultName;
+  const res = await fetch("/api/defaultNameAGB");
+  if (!res.ok) throw new Error("Failed to fetch default name");
+  const json = await res.json();
+  cachedDefaultName = json.name;
+  return cachedDefaultName;
+}
+
+// === Generate Application ===
+async function generateApplication() {
+  const type = document.getElementById("absenceType").value;
+  const fromDate = document.getElementById("fromDate").value;
+  const toDate = document.getElementById("toDate").value;
+  const reasonSelect = document.getElementById("reasonSelect").value;
+  const otherReason = document.getElementById("otherReason").value.trim();
+  let name = document.getElementById("name").value.trim();
+
+  if (!fromDate) { alert("Please select at least one date."); return; }
+
+  const sigDataURL = cachedSignature || (await getSignatureDataURL());
+  const defaultName = cachedDefaultName || (await getDefaultName());
+  if (!name) name = defaultName;
+
+  const reason = reasonSelect === "other" && otherReason ? otherReason : reasonSelect;
+  const formattedFromDate = formatDate(fromDate);
+  let dateText = formattedFromDate;
+  const daysCount = getDaysDifference(fromDate, toDate);
+  if (toDate && toDate !== fromDate) dateText = `${formattedFromDate} - ${formatDate(toDate)}`;
+  const dayText = daysCount === 1 ? "day" : "days";
+
+  const bodyText =
+    type === "will"
+      ? `With due respect, I would like to inform you that I will not be able to attend my duty on ${dateText} due to ${reason}. I would be grateful if you kindly grant me a casual leave for the above-mentioned ${dayText}.`
+      : `With due respect, I would like to inform you that I could not attend my duty on ${dateText} due to ${reason}. I kindly request you to consider my absence as casual leave for the above-mentioned ${dayText}.`;
+
+  const today = formatDate(new Date().toISOString().split("T")[0]);
+
+  const applicationHTML = `
+    <p>To,<br>The Block Elementary Education Officer,<br>Central Block, Golaghat, Assam.</p>
+    <p style="text-align:right;">Date: ${today}</p>
+    <p><strong>Sub:</strong> Application for casual leave.</p>
+    <p>Respected Madam,<br>${bodyText}</p>
+    <p>Yours faithfully,<br><br>
+      <img class="sig-img" id="sigImage" src="${sigDataURL}" />
+      <br>
+      <strong>${name}</strong><br>
+      Assistant Teacher<br>
+      Goriajan Bagisha M.E. School
+    </p>
+  `;
+
+  const appDiv = document.getElementById("application");
+  appDiv.innerHTML = applicationHTML;
+  appDiv.style.display = "block";
+  document.getElementById("downloadBtn").style.display = "block";
+  appDiv.scrollIntoView({ behavior: "smooth" });
+}
+
+// === Download PDF ===
+async function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  const appDiv = document.getElementById("application");
+  const paragraphs = Array.from(appDiv.querySelectorAll("p"));
+  const margin = 20, lineHeight = 7;
+  const pageWidth = doc.internal.pageSize.width;
+  const maxWidth = pageWidth - 2 * margin;
+  let y = margin;
+
+  for (let p of paragraphs) {
+    const sigImage = p.querySelector("img");
+
+    if (sigImage) {
+      const textBeforeImg = "Yours faithfully,";
+      y = printTextBlock(doc, textBeforeImg, margin, y, maxWidth, lineHeight);
+
+      try {
+        const { dataURL } = await loadImageAsDataURL(sigImage);
+        const imgWidthMm = pxToMm(220);
+        const imgHeightMm = pxToMm(100);
+        doc.addImage(dataURL, "PNG", margin, y, imgWidthMm, imgHeightMm);
+        y += imgHeightMm + 3;
+      } catch (err) {
+        console.warn("Could not embed signature image:", err);
+        doc.text("(Signature image could not be embedded)", margin, y);
+        y += lineHeight;
+      }
+
+      const nameElement = p.querySelector("strong");
+      if (nameElement) {
+        doc.setFont("Times", "bold");
+        doc.text(nameElement.innerText, margin, y);
+        doc.setFont("Times", "normal");
+        y += lineHeight;
+
+        const remainingLines = [
+          "Assistant Teacher",
+          "Goriajan Bagisha M.E. School"
+        ];
+        remainingLines.forEach(line => { 
+          doc.text(line, margin, y); 
+          y += lineHeight; 
+        });
+      }
+    } else {
+      y = printTextBlock(doc, p.innerText, margin, y, maxWidth, lineHeight);
+      y += lineHeight;
+    }
+  }
+
+  // Add timestamped filename
+  const now = new Date();
+  const timestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}`;
+  doc.save(`casual_leave_application_${timestamp}.pdf`);
+}
+
+// === Preload secure values on page load ===
+window.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const [sig, name] = await Promise.all([getSignatureDataURL(), getDefaultName()]);
+    cachedSignature = sig;
+    cachedDefaultName = name;
+
+    const nameInput = document.getElementById("name");
+    if (nameInput && (!nameInput.value || nameInput.value === "Name Here")) {
+      nameInput.value = cachedDefaultName;
+    }
+    console.log("✅ Signature and default name preloaded");
+  } catch (err) {
+    console.warn("⚠️ Could not preload env data:", err);
+  }
+});
+</script>
+</body>
+</html>
