@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Abhigyan's 2026 Reading Quest • 20 Books</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #161b22;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #c9a96e;
+      --progress: #22c55e;
+      --reading: #60a5fa;
+      --planned: #fbbf24;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --accent: #8b5cf6;
+      --progress: #16a34a;
+      --reading: #3b82f6;
+      --planned: #d97706;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      background-image: linear-gradient(rgba(15,17,23,0.92), rgba(15,17,23,0.92)),
+                        url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1600');
+      background-size: cover;
+      background-attachment: fixed;
+      background-position: center;
+    }
+
+    header { text-align: center; padding: 2.5rem 1rem 1rem; }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.6rem;
+      margin-bottom: 0.4rem;
+      color: var(--accent);
+    }
+
+    .subtitle { color: var(--text-muted); font-size: 1.1rem; }
+
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem 2rem;
+      margin: 1.5rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .stat-item strong {
+      display: block;
+      font-size: 1.6rem;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+
+    .progress-container {
+      margin: 2rem auto;
+      max-width: 300px;
+      position: relative;
+    }
+
+    .progress-ring { width: 100%; height: auto; }
+
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .progress-text .number {
+      font-size: 3.8rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    .progress-text .total {
+      font-size: 1.3rem;
+      color: var(--text-muted);
+    }
+
+    .status {
+      text-align: center;
+      font-size: 1.1rem;
+      margin: 0.8rem 0 2.5rem;
+      color: var(--progress);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 1rem 4rem;
+    }
+
+    .book-list {
+      background: var(--card);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #2d3748;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .book-item {
+      display: grid;
+      grid-template-columns: 3.5fr 3fr 1.8fr 1.8fr 1.8fr 1.5fr 1.2fr;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid #2d3748;
+      font-size: 0.97rem;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .book-item:last-child { border-bottom: none; }
+
+    .book-title   { font-weight: 500; color: var(--text); }
+    .book-author  { color: var(--text-muted); }
+    .book-lang    { color: var(--text-muted); font-size: 0.92rem; }
+    .stars        { color: #f59e0b; font-size: 1.05rem; }
+    .stars .empty { color: #4b5563; }
+    .pages        { text-align: right; color: var(--text-muted); }
+    .completed    { text-align: right; color: var(--text-muted); }
+    .status-cell  {
+      font-weight: 500;
+      text-align: center;
+      text-transform: capitalize;
+    }
+    .status-finished { color: var(--progress); }
+    .status-reading  { color: var(--reading); }
+    .status-planned  { color: var(--planned); }
+
+    .total-pages {
+      text-align: center;
+      margin: 2.5rem 0 1rem;
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(30,41,59,0.7);
+      border: none;
+      color: var(--text);
+      font-size: 1.3rem;
+      padding: 0.6rem;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .theme-toggle:hover { background: rgba(30,41,59,0.9); }
+
+    @media (max-width: 900px) {
+      .book-item {
+        grid-template-columns: 1fr;
+        gap: 0.7rem;
+        padding: 1.3rem;
+      }
+      .pages, .completed, .stars, .status-cell { text-align: left; }
+      h1 { font-size: 2.3rem; }
+      .progress-text .number { font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="theme-toggle" id="themeBtn" title="Toggle theme">
+    <i class="fas fa-moon"></i>
+  </button>
+
+  <header>
+    <h1>2026 Reading Quest</h1>
+    <p class="subtitle">Abhigyan's 20-Book Challenge</p>
+  </header>
+
+  <div class="progress-container">
+    <svg class="progress-ring" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="54" fill="none" stroke="#2d3748" stroke-width="12"/>
+      <circle cx="60" cy="60" r="54" fill="none" stroke="var(--accent)" stroke-width="12"
+              stroke-dasharray="339" stroke-dashoffset="339" id="progressCircle"
+              transform="rotate(-90 60 60)"/>
+    </svg>
+    <div class="progress-text">
+      <div class="number" id="booksRead">0</div>
+      <div class="total">/ 20</div>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <strong id="daysLeft">334</strong>
+      <span>Days Remaining</span>
+    </div>
+    <div class="stat-item">
+      <strong id="booksPerMonth">~1.0</strong>
+      <span>Books / Month to Finish</span>
+    </div>
+  </div>
+
+  <p class="status" id="paceStatus">Pace calculation</p>
+
+  <div class="container">
+    <h2 style="text-align:center; margin:2.2rem 0 1.2rem; color:var(--text-muted);">Reading List</h2>
+
+    <div class="book-list" id="bookList"></div>
+
+    <div class="total-pages">
+      Total pages read (finished books): <strong id="totalPages">0</strong>
+    </div>
+  </div>
+
+  <script>
+    fetch('books.json')
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to load books.json');
+        return response.json();
+      })
+      .then(books => {
+        const list = document.getElementById('bookList');
+        let totalPages = 0;
+        let finishedCount = 0;
+
+        books.forEach(book => {
+          const isFinished = book.status?.toLowerCase() === 'finished';
+
+          if (isFinished) {
+            finishedCount++;
+            totalPages += Number(book.pages) || 0;
+          }
+
+          const statusClass = {
+            finished: 'status-finished',
+            reading:  'status-reading',
+            planned:  'status-planned'
+          }[book.status?.toLowerCase()] || '';
+
+          const item = document.createElement('div');
+          item.className = 'book-item';
+          item.innerHTML = `
+            <div class="book-title">${book.title || '?'}</div>
+            <div class="book-author">${book.author || '-'}</div>
+            <div class="book-lang">${book.language || '-'}</div>
+            <div class="stars">
+              ${'<i class="fa-solid fa-star"></i>'.repeat(book.rating || 0)}
+              ${'<i class="fa-regular fa-star empty"></i>'.repeat(5 - (book.rating || 0))}
+            </div>
+            <div class="pages">${book.pages || '?'} pages</div>
+            <div class="completed">${book.completed || '—'}</div>
+            <div class="status-cell ${statusClass}">${book.status || 'unknown'}</div>
+          `;
+          list.appendChild(item);
+        });
+
+        // Update summary
+        document.getElementById('booksRead').textContent = finishedCount;
+        document.getElementById('totalPages').textContent = totalPages.toLocaleString();
+
+        const progress = finishedCount / 20;
+        const circle = document.getElementById('progressCircle');
+        const circumference = 2 * Math.PI * 54;
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = circumference * (1 - progress);
+
+        const daysLeft = 334; // ← update this dynamically if you switch to PHP later
+        const booksLeft = 20 - finishedCount;
+        const monthsLeft = daysLeft / 30.437;
+        const bpm = monthsLeft > 0 ? (booksLeft / monthsLeft).toFixed(1) : '—';
+
+        document.getElementById('daysLeft').textContent = daysLeft;
+        document.getElementById('booksPerMonth').textContent = `~${bpm}`;
+        document.getElementById('paceStatus').textContent =
+          finishedCount >= 20 ? 'Goal achieved! 🎉' :
+          bpm > 1.3 ? 'Slightly behind' :
+          bpm < 0.8 ? 'Well ahead' : 'On good pace';
+      })
+      .catch(err => {
+        document.getElementById('bookList').innerHTML =
+          `<p style="text-align:center; padding:3rem; color:#f87171;">
+            Failed to load books.json<br><small>${err.message}</small>
+          </p>`;
+      });
+
+    // Theme toggle
+    const themeBtn = document.getElementById('themeBtn');
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    themeBtn.innerHTML = saved === 'dark' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+
+    themeBtn.addEventListener('click', () => {
+      const curr = document.documentElement.getAttribute('data-theme');
+      const next = curr === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      themeBtn.innerHTML = next === 'dark' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+    });
+  </script>
+</body>
+</html>
