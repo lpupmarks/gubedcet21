@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Dune",
+    "author": "Frank Herbert",
+    "language": "English",
+    "pages": 412,
+    "completed": "2026-01-15",
+    "rating": 5,
+    "comment": "Epic world-building",
+    "status": "finished"
+  },
+  {
+    "title": "Project Hail Mary",
+    "author": "Andy Weir",
+    "language": "English",
+    "pages": 496,
+    "completed": "2026-02-03",
+    "rating": 5,
+    "comment": "Very clever hard sci-fi",
+    "status": "finished"
+  },
+  {
+    "title": "The Three-Body Problem",
+    "author": "Liu Cixin",
+    "language": "English (translated)",
+    "pages": 399,
+    "completed": null,
+    "rating": null,
+    "comment": "Currently on chapter 12 – mind-bending",
+    "status": "reading"
+  },
+  {
+    "title": "Atomic Habits",
+    "author": "James Clear",
+    "language": "English",
+    "pages": 320,
+    "completed": null,
+    "rating": null,
+    "comment": "Plan to read next month",
+    "status": "planned"
+  }
+]
