@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ISBN Book Scanner → Local Storage Table</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 12px;
+      background: #f8f9fa;
+    }
+    h1 { font-size: 1.4rem; margin: 0.6em 0; }
+    #preview-container {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto 1rem;
+      border: 3px solid #444;
+      border-radius: 10px;
+      overflow: hidden;
+      background: black;
+    }
+    video {
+      width: 100%;
+      display: block;
+    }
+    #overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 2px solid #00ff41;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+      border-radius: 10px;
+    }
+    #result {
+      font-size: 1.1rem;
+      min-height: 1.4em;
+      margin: 0.5em 0;
+      color: #d63384;
+      font-weight: bold;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      margin: 0 8px 12px 0;
+      border: none;
+      border-radius: 8px;
+      background: #0d6efd;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover { background: #0b5ed7; }
+    button.stop { background: #dc3545; }
+    button.stop:hover { background: #bb2d3b; }
+    button.clear { background: #6c757d; }
+    button.clear:hover { background: #5c636a; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #dee2e6;
+      text-align: left;
+    }
+    th {
+      background: #e9ecef;
+      position: sticky;
+      top: 0;
+    }
+    tr:nth-child(even) { background: #f8f9fa; }
+    .isbn-col { min-width: 130px; }
+    .title-col { min-width: 160px; }
+  </style>
+</head>
+<body>
+
+<h1>ISBN Book Scanner</h1>
+
+<div id="preview-container">
+  <video id="video" autoplay playsinline></video>
+  <div id="overlay"></div>
+</div>
+
+<div>
+  <button id="startBtn">Start Camera</button>
+  <button id="stopBtn" class="stop" disabled>Stop Camera</button>
+  <button id="clearBtn" class="clear">Clear All Books</button>
+</div>
+
+<div id="result">— waiting for scan —</div>
+
+<table id="bookTable">
+  <thead>
+    <tr>
+      <th>ISBN</th>
+      <th>Title</th>
+      <th>Author</th>
+      <th>Publisher</th>
+      <th>Year</th>
+      <th>Added</th>
+    </tr>
+  </thead>
+  <tbody id="bookBody"></tbody>
+</table>
+
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<script>
+// ────────────────────────────────────────────────
+const video = document.getElementById('video');
+const resultDiv = document.getElementById('result');
+const startBtn = document.getElementById('startBtn');
+const stopBtn  = document.getElementById('stopBtn');
+const clearBtn = document.getElementById('clearBtn');
+const tbody    = document.getElementById('bookBody');
+
+let codeReader = new ZXing.BrowserMultiFormatReader();
+let scanning = false;
+let stream = null;
+
+// ─── Local Storage ──────────────────────────────────────
+const STORAGE_KEY = "scanned_books_2025";
+
+function loadBooks() {
+  const json = localStorage.getItem(STORAGE_KEY);
+  return json ? JSON.parse(json) : [];
+}
+
+function saveBooks(books) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+  renderTable();
+}
+
+function addBook(isbn, data) {
+  const books = loadBooks();
+  // avoid perfect duplicates
+  if (books.some(b => b.isbn === isbn)) return;
+
+  const entry = {
+    isbn,
+    title:     data.title     || "—",
+    author:    data.author    || "—",
+    publisher: data.publisher || "—",
+    year:      data.year      || "—",
+    added:     new Date().toLocaleString()
+  };
+  books.push(entry);
+  saveBooks(books);
+}
+
+function renderTable() {
+  tbody.innerHTML = "";
+  const books = loadBooks().reverse(); // newest first
+
+  books.forEach(book => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="isbn-col">${book.isbn}</td>
+      <td class="title-col">${book.title}</td>
+      <td>${book.author}</td>
+      <td>${book.publisher}</td>
+      <td>${book.year}</td>
+      <td>${book.added}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ─── Camera & Scanning ──────────────────────────────────
+async function startScanning() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }   // back camera
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    startBtn.disabled = true;
+    stopBtn.disabled  = false;
+
+    scanning = true;
+    resultDiv.textContent = "Scanning...";
+
+    codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+      if (result) {
+        const isbn = cleanISBN(result.text);
+        if (isProbablyISBN(isbn)) {
+          resultDiv.textContent = `ISBN → ${isbn}`;
+          fetchBookData(isbn);
+          // optional: stop after first good scan
+          // stopScanning();
+        }
+      }
+      if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.error(err);
+      }
+    });
+  } catch (e) {
+    resultDiv.textContent = "Camera error: " + e.message;
+  }
+}
+
+function stopScanning() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  codeReader.reset();
+  scanning = false;
+  video.srcObject = null;
+
+  startBtn.disabled = false;
+  stopBtn.disabled  = true;
+  resultDiv.textContent = "— camera stopped —";
+}
+
+// ─── ISBN helpers ───────────────────────────────────────
+function cleanISBN(str) {
+  return str.replace(/[^0-9X]/gi, '').trim();
+}
+
+function isProbablyISBN(s) {
+  return /^(97[89])?\d{9}[\dX]$/.test(s);
+}
+
+// ─── Book data (open library – no key needed) ──────────
+async function fetchBookData(isbn) {
+  try {
+    const url = `https://openlibrary.org/isbn/${isbn}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Not found");
+
+    const book = await res.json();
+
+    const data = {
+      title:     book.title,
+      author:    await getAuthorName(book.authors?.[0]?.key),
+      publisher: book.publishers?.[0],
+      year:      book.publish_date || book.publish_year?.[0]
+    };
+
+    addBook(isbn, data);
+    resultDiv.textContent = `Added: ${data.title || isbn}`;
+  } catch (err) {
+    console.warn(err);
+    // still save the ISBN even if metadata failed
+    addBook(isbn, { title: "???" });
+    resultDiv.textContent = `ISBN saved (no metadata): ${isbn}`;
+  }
+}
+
+async function getAuthorName(authorKey) {
+  if (!authorKey) return null;
+  try {
+    const res = await fetch(`https://openlibrary.org${authorKey}.json`);
+    const a = await res.json();
+    return a.name;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Events ─────────────────────────────────────────────
+startBtn.onclick = startScanning;
+stopBtn.onclick  = stopScanning;
+
+clearBtn.onclick = () => {
+  if (confirm("Delete ALL saved books?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    renderTable();
+  }
+};
+
+// Load table on start
+renderTable();
+
+</script>
+</body>
+</html>
