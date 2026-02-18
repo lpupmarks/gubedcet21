@@ -209,6 +209,7 @@ function renderTable() {
 }
 
 // ─── Better ISBN data fetching ───────────────────
+// ─── Better ISBN data fetching (updated for proper author resolution) ──
 async function fetchBookData(isbn) {
   resultDiv.innerHTML = `Looking up ISBN ${isbn}...`;
 
@@ -224,16 +225,31 @@ async function fetchBookData(isbn) {
       const data = await res.json();
 
       if (url.includes('openlibrary')) {
-        // Open Library sometimes needs extra author fetch – but usually .authors works
-        let authors = '';
+        let authors = '—';
+
         if (data.authors && Array.isArray(data.authors)) {
-          authors = data.authors.map(a => a.name || a.key?.replace('/authors/', '') || '').filter(Boolean).join(', ');
+          const authorPromises = data.authors.map(async (authorRef) => {
+            if (authorRef.name) return authorRef.name; // already has name (rare)
+            if (authorRef.key && authorRef.key.startsWith('/authors/')) {
+              try {
+                const authRes = await fetch(`https://openlibrary.org${authorRef.key}.json`);
+                if (authRes.ok) {
+                  const authData = await authRes.json();
+                  return authData.name || 'Unknown Author';
+                }
+              } catch (e) {}
+            }
+            return '—';
+          });
+
+          const resolvedAuthors = await Promise.all(authorPromises);
+          authors = resolvedAuthors.filter(a => a !== '—').join(', ') || '—';
         }
 
         return {
           isbn,
           title: data.title || 'Unknown Title',
-          authors: authors || '—',
+          authors,
           language: data.languages?.[0]?.key?.replace('/languages/', '')?.toUpperCase() || data.language || '—',
           added: new Date().toLocaleDateString()
         };
@@ -242,7 +258,7 @@ async function fetchBookData(isbn) {
         const item = data.items[0].volumeInfo;
         return {
           isbn,
-          title: item.title || item.subtitle ? `${item.title}: ${item.subtitle}` : item.title || 'Unknown Title',
+          title: item.title || (item.subtitle ? `${item.title}: ${item.subtitle}` : 'Unknown Title'),
           authors: item.authors?.join(', ') || '—',
           language: item.language?.toUpperCase() || '—',
           added: new Date().toLocaleDateString()
@@ -253,7 +269,7 @@ async function fetchBookData(isbn) {
     }
   }
 
-  // Fallback
+  // Ultimate fallback
   return {
     isbn,
     title: 'Not found in public APIs',
