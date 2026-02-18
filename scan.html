@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ISBN Book Scanner → Local Library</title>
+  <title>ISBN Book Scanner & Manual Lookup</title>
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -45,6 +45,28 @@
       min-height: 80px;
     }
 
+    .manual-search {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .manual-search input {
+      padding: 10px;
+      width: 220px;
+      font-size: 1.1rem;
+      border: 2px solid #3498db;
+      border-radius: 6px;
+    }
+    .manual-search button {
+      padding: 10px 18px;
+      font-size: 1.1rem;
+      background: #2980b9;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
     table {
       width: 100%;
       max-width: 900px;
@@ -73,7 +95,7 @@
     }
     .delete-btn:hover { background: #c0392b; }
 
-    button {
+    button.big {
       padding: 12px 24px;
       font-size: 1.1rem;
       margin: 8px;
@@ -88,7 +110,7 @@
 </head>
 <body>
 
-<h1>ISBN Book Scanner</h1>
+<h1>ISBN Book Scanner + Manual Lookup</h1>
 
 <div id="preview-container">
   <video id="video" autoplay playsinline></video>
@@ -96,9 +118,14 @@
 </div>
 
 <div style="text-align:center">
-  <button id="startBtn">Start Camera & Scan</button>
-  <button id="stopBtn">Stop Camera</button>
-  <button id="clearBtn">Clear All Books</button>
+  <button class="big" id="startBtn">Start Camera & Scan</button>
+  <button class="big" id="stopBtn">Stop Camera</button>
+  <button class="big" id="clearBtn">Clear All Books</button>
+</div>
+
+<div class="manual-search">
+  <input type="text" id="manualIsbn" placeholder="Enter ISBN (10 or 13 digits)" />
+  <button onclick="manualLookup()">Add Book Manually</button>
 </div>
 
 <div id="result"></div>
@@ -127,12 +154,13 @@ const canvas      = document.getElementById('canvas');
 const ctx         = canvas.getContext('2d');
 const resultDiv   = document.getElementById('result');
 const bookList    = document.getElementById('bookList');
+const manualInput = document.getElementById('manualIsbn');
 
 const codeReader  = new ZXing.BrowserMultiFormatReader();
 let scanning      = false;
 let stream        = null;
 
-// ─── Local Storage helpers ───────────────────────
+// ─── Local Storage ───────────────────────────────
 function loadBooks() {
   const data = localStorage.getItem('myBooks');
   return data ? JSON.parse(data) : [];
@@ -145,14 +173,13 @@ function saveBooks(books) {
 
 function addBook(book) {
   const books = loadBooks();
-  // Prevent duplicates by ISBN
   if (books.some(b => b.isbn === book.isbn)) {
-    resultDiv.innerHTML = `Book already in library: <b>${book.title}</b>`;
+    resultDiv.innerHTML = `Already in library: <b>${book.title}</b>`;
     return;
   }
   books.push(book);
   saveBooks(books);
-  resultDiv.innerHTML = `Added: <b>${book.title}</b> (${book.isbn})`;
+  resultDiv.innerHTML = `Added: <b>${book.title}</b> by ${book.authors || '—'}`;
 }
 
 function deleteBook(isbn) {
@@ -162,7 +189,7 @@ function deleteBook(isbn) {
   resultDiv.innerHTML = `Book removed.`;
 }
 
-// ─── Table renderer ──────────────────────────────
+// ─── Table ───────────────────────────────────────
 function renderTable() {
   const books = loadBooks();
   bookList.innerHTML = '';
@@ -181,9 +208,10 @@ function renderTable() {
   });
 }
 
-// ─── ISBN data fetching ──────────────────────────
+// ─── Better ISBN data fetching ───────────────────
 async function fetchBookData(isbn) {
-  // Try multiple free APIs (some may stop working over time)
+  resultDiv.innerHTML = `Looking up ISBN ${isbn}...`;
+
   const apis = [
     `https://openlibrary.org/isbn/${isbn}.json`,
     `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
@@ -193,88 +221,103 @@ async function fetchBookData(isbn) {
     try {
       const res = await fetch(url);
       if (!res.ok) continue;
+      const data = await res.json();
 
       if (url.includes('openlibrary')) {
-        const data = await res.json();
-        const authors = data?.authors?.map(a => a.name).join(', ') || '';
+        // Open Library sometimes needs extra author fetch – but usually .authors works
+        let authors = '';
+        if (data.authors && Array.isArray(data.authors)) {
+          authors = data.authors.map(a => a.name || a.key?.replace('/authors/', '') || '').filter(Boolean).join(', ');
+        }
+
         return {
           isbn,
           title: data.title || 'Unknown Title',
-          authors,
-          language: data.language || data.languages?.[0]?.key?.replace('/languages/','') || '—',
+          authors: authors || '—',
+          language: data.languages?.[0]?.key?.replace('/languages/', '')?.toUpperCase() || data.language || '—',
           added: new Date().toLocaleDateString()
         };
       }
-      else if (url.includes('googleapis')) {
-        const data = await res.json();
-        if (data.totalItems > 0) {
-          const item = data.items[0].volumeInfo;
-          return {
-            isbn,
-            title: item.title || 'Unknown Title',
-            authors: item.authors?.join(', ') || '—',
-            language: item.language?.toUpperCase() || '—',
-            added: new Date().toLocaleDateString()
-          };
-        }
+      else if (url.includes('googleapis') && data.totalItems > 0) {
+        const item = data.items[0].volumeInfo;
+        return {
+          isbn,
+          title: item.title || item.subtitle ? `${item.title}: ${item.subtitle}` : item.title || 'Unknown Title',
+          authors: item.authors?.join(', ') || '—',
+          language: item.language?.toUpperCase() || '—',
+          added: new Date().toLocaleDateString()
+        };
       }
-    } catch(e) {}
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  // Fallback when no API worked
+  // Fallback
   return {
     isbn,
-    title: 'Title not found',
+    title: 'Not found in public APIs',
     authors: '—',
     language: '—',
     added: new Date().toLocaleDateString()
   };
 }
 
-// ─── Scanning logic ───────────────────────────────
+// ─── Scanning ─────────────────────────────────────
 async function startScanning() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }   // back camera
+      video: { facingMode: 'environment' }
     });
     video.srcObject = stream;
     await video.play();
 
     scanning = true;
-    resultDiv.textContent = "Scanning... point camera at ISBN barcode";
+    resultDiv.textContent = "Scanning... aim at ISBN barcode";
 
     codeReader.decodeFromVideoDevice(null, 'video', async (result, err) => {
       if (result) {
-        const isbn = result.text.trim().replace(/[^0-9X]/gi,'');
+        let isbn = result.text.trim().replace(/[^0-9X]/gi, '');
         if (isbn.length >= 10) {
           stopScanning();
-          resultDiv.textContent = `ISBN detected: ${isbn} → fetching...`;
-
           const book = await fetchBookData(isbn);
           addBook(book);
         }
       }
+      // ignore NotFoundException (normal during scan)
       if (err && !(err instanceof ZXing.NotFoundException)) {
         console.error(err);
       }
     });
   } catch (err) {
-    resultDiv.textContent = "Camera error: " + err.message;
+    resultDiv.textContent = "Camera permission denied or error: " + err.message;
   }
 }
 
 function stopScanning() {
   if (stream) {
-    stream.getTracks().forEach(track => track.stop());
+    stream.getTracks().forEach(t => t.stop());
     stream = null;
   }
   codeReader.reset();
   scanning = false;
   video.srcObject = null;
-  resultDiv.textContent = "Ready to scan again.";
+  resultDiv.textContent = "Camera stopped. Ready.";
 }
 
-// ─── Event listeners ─────────────────────────────
+// ─── Manual lookup ────────────────────────────────
+async function manualLookup() {
+  let isbn = manualInput.value.trim().replace(/[^0-9X]/gi, '');
+  if (isbn.length < 10) {
+    resultDiv.innerHTML = "Please enter a valid ISBN (10 or 13 digits).";
+    return;
+  }
+  manualInput.value = ''; // clear input
+  const book = await fetchBookData(isbn);
+  addBook(book);
+}
+
+// ─── Events ───────────────────────────────────────
 document.getElementById('startBtn').onclick = startScanning;
 document.getElementById('stopBtn').onclick  = stopScanning;
 document.getElementById('clearBtn').onclick = () => {
@@ -285,7 +328,7 @@ document.getElementById('clearBtn').onclick = () => {
   }
 };
 
-// Initial load
+// Load on start
 renderTable();
 
 </script>
