@@ -1,0 +1,132 @@
+{
+  "id": "borgeet-001",
+  "title": "শুন শুন ৰে সুৰবৈৰী প্ৰমাণা",
+  "author": "শ্ৰীমন্ত শংকৰদেৱ",
+  "raga": "",
+  "language": "Old Assamese",
+  "description": "A Borgeet describing Lord Rama's march towards Lanka and warning Ravana.",
+  "stanzas": [
+    {
+      "id": "dhruva",
+      "title": "ধ্ৰুং",
+      "lines": [
+        {
+          "text": "শুন শুন ৰে সুৰবৈৰী প্ৰমাণা",
+          "words": [
+            {
+              "word": "সুৰবৈৰী",
+              "assamese": "দেৱতাসকলৰ শত্ৰু (ৰাৱণ)",
+              "english": "Enemy of the gods (Ravana)",
+              "root": [
+                {
+                  "word": "সুৰ",
+                  "meaning": "দেৱতা (God)"
+                },
+                {
+                  "word": "বৈৰী",
+                  "meaning": "শত্ৰু (Enemy)"
+                }
+              ]
+            },
+            {
+              "word": "প্ৰমাণা",
+              "assamese": "মহান, শক্তিশালী, প্ৰবল",
+              "english": "Mighty, powerful",
+              "root": []
+            }
+          ]
+        },
+        {
+          "text": "নিশাচৰ নাশনিদানা",
+          "words": [
+            {
+              "word": "নিশাচৰ",
+              "assamese": "ৰাতি বিচৰণ কৰা ৰাক্ষস",
+              "english": "Night-roaming demon",
+              "root": [
+                {
+                  "word": "নিশা",
+                  "meaning": "ৰাতি (Night)"
+                },
+                {
+                  "word": "চৰ",
+                  "meaning": "বিচৰণ কৰা (One who roams)"
+                }
+              ]
+            },
+            {
+              "word": "নাশনিদানা",
+              "assamese": "বিনাশপ্ৰাপ্ত হ'বলগীয়া, ধ্বংসৰ কাৰণ",
+              "english": "Destined for destruction",
+              "root": [
+                {
+                  "word": "নাশ",
+                  "meaning": "বিনাশ (Destruction)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "ৰামনাম যম সমৰক সাজি",
+          "words": [
+            {
+              "word": "ৰামনাম",
+              "assamese": "ভগৱান ৰাম",
+              "english": "Lord Rama",
+              "root": []
+            },
+            {
+              "word": "যম",
+              "assamese": "মৃত্যুৰ দেৱতা",
+              "english": "Yama, the god of death",
+              "root": []
+            },
+            {
+              "word": "সমৰ",
+              "assamese": "যুদ্ধ",
+              "english": "Battle",
+              "root": []
+            },
+            {
+              "word": "সাজি",
+              "assamese": "প্ৰস্তুত হৈ",
+              "english": "Prepared",
+              "root": []
+            }
+          ]
+        },
+        {
+          "text": "সমদলে কয়লি পয়াণা",
+          "words": [
+            {
+              "word": "সমদলে",
+              "assamese": "সম্পূৰ্ণ সেনাবাহিনীৰ সৈতে",
+              "english": "With the entire army",
+              "root": [
+                {
+                  "word": "সম",
+                  "meaning": "সম্পূৰ্ণ (Entire)"
+                },
+                {
+                  "word": "দল",
+                  "meaning": "সেনাবাহিনী (Army)"
+                }
+              ]
+            },
+            {
+              "word": "পয়াণা",
+              "assamese": "যাত্ৰা কৰিলে, ৰাওনা হ'ল",
+              "english": "Departed, set out",
+              "root": []
+            }
+          ]
+        }
+      ],
+      "meaning": {
+        "assamese": "হে দেৱতাসকলৰ শত্ৰু ৰাৱণ! শুনা। তোমাৰ বিনাশৰ সময় আহি পাইছে। ভগৱান ৰামে যমৰ দৰে ভয়ংকৰ ৰূপ ধৰি যুদ্ধৰ বাবে সাজু হৈ সমগ্ৰ সেনাবাহিনীৰ সৈতে লংকাৰ ফালে যাত্ৰা কৰিছে।",
+        "english": "Listen, O Ravana, enemy of the gods! Your destruction is near. Lord Rama has prepared for battle like Yama, the god of death, and has set out toward Lanka with his entire army."
+      }
+    }
+  ]
+}
