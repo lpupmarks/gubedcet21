@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Borgeet Viewer</title><style>
+body{font-family:sans-serif;max-width:900px;margin:auto;padding:20px} .word{color:#1565c0;cursor:pointer;font-weight:bold}.modal{display:none;position:fixed;inset:0;background:#0008}.box{background:#fff;padding:20px;max-width:500px;margin:10% auto}
+</style></head><body><h1 id=t></h1><div id=c></div><div class="modal" id=m><div class=box><h2 id=w></h2><p><b>অসমীয়া</b>: <span id=am></span></p><p><b>English</b>: <span id=en></span></p><button onclick="m.style.display='none'">Close</button></div></div>
+<script>
+fetch('borgeet.json').then(r=>r.json()).then(d=>{
+t.textContent=d.title;
+let map={}; d.stanzas.forEach(s=>{let sec=document.createElement('section'); s.lines.forEach(l=>{let p=document.createElement('p'); let txt=l.text; l.words.forEach(o=>{txt=txt.replace(o.word,'<span class="word" data="'+o.word+'">'+o.word+'</span>'); map[o.word]=o;}); p.innerHTML=txt; sec.appendChild(p);}); let g=document.createElement('p'); g.innerHTML='<b>অসমীয়া:</b> '+s.meaning.assamese+'<br><b>English:</b> '+s.meaning.english; sec.appendChild(g); c.appendChild(sec);});
+document.querySelectorAll('.word').forEach(x=>x.onclick=()=>{let o=map[x.dataset.data];w.textContent=o.word;am.textContent=o.assamese;en.textContent=o.english;m.style.display='block';});
+});
+</script></body></html>
